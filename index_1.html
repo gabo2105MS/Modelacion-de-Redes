@@ -1,0 +1,1556 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Grafos al Parcial</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: mapa de metro sobre papel cuadriculado; una columna de lectura (max 760px) y barra de pestañas fija abajo, pensada para el pulgar. */
+:root{
+  --paper:#EEF2F5; --grid:rgba(31,74,110,.07); --card:#FFFFFF; --ink:#12233A; --muted:#55677D; --line:#D2DBE4;
+  --accent:#E4570E; --accent-soft:#FDE6D8; --tree:#137A8A; --tree-soft:#D6EEF1; --front:#E9A100; --front-soft:#FBF0D2;
+  --good:#2B8A3E; --good-soft:#DDF3E2; --bad:#C92A2A; --bad-soft:#FBE1E1;
+  --f-display:"Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --r:14px; --nav-h:64px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#0D1622; --grid:rgba(120,170,220,.06); --card:#142233; --ink:#E4ECF4; --muted:#93A5B9; --line:#26384D;
+  --accent:#FF7B36; --accent-soft:#3A2416; --tree:#3EB8CA; --tree-soft:#123440; --front:#F2B632; --front-soft:#3A2F12;
+  --good:#58CF6E; --good-soft:#15331D; --bad:#FF6B6B; --bad-soft:#3D1B1B; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --paper:#0D1622; --grid:rgba(120,170,220,.06); --card:#142233; --ink:#E4ECF4; --muted:#93A5B9; --line:#26384D;
+  --accent:#FF7B36; --accent-soft:#3A2416; --tree:#3EB8CA; --tree-soft:#123440; --front:#F2B632; --front-soft:#3A2F12;
+  --good:#58CF6E; --good-soft:#15331D; --bad:#FF6B6B; --bad-soft:#3D1B1B; color-scheme:dark }
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:22px 22px;}
+.wrap{max-width:760px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));
+  padding-block:20px calc(var(--nav-h) + 32px + env(safe-area-inset-bottom, 0px));}
+h1,h2,h3{font-family:var(--f-display);line-height:1.1;text-wrap:balance;margin:0}
+h1{font-size:clamp(2.2rem,9vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:1.7rem;font-weight:800;letter-spacing:-.01em}
+h3{font-size:1.15rem;font-weight:700}
+p{margin:0}
+.eyebrow{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.muted{color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:14px}
+.stack-lg{display:flex;flex-direction:column;gap:28px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;min-width:0}
+b,strong{font-weight:700}
+code,.mono{font-family:var(--f-mono);font-size:.88em}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn{border:1.5px solid var(--ink);background:var(--card);border-radius:999px;padding:9px 16px;font-weight:700;font-size:.95rem;display:inline-flex;align-items:center;gap:6px;min-height:42px}
+a.btn{color:var(--ink)}
+.btn.primary{background:var(--ink);color:var(--paper)}
+.btn.accent{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.ghost{border-color:var(--line)}
+.btn:disabled{opacity:.4;cursor:default}
+.chip{border:1.5px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:.88rem;font-weight:700;min-height:36px}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.tag{display:inline-block;font-family:var(--f-mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:6px;background:var(--tree-soft);color:var(--tree);font-weight:600}
+.tag.orange{background:var(--accent-soft);color:var(--accent)}
+.tag.gold{background:var(--front-soft);color:var(--ink)}
+
+/* nav */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--card);border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom, 0px);padding-left:max(6px, env(safe-area-inset-left, 0px));padding-right:max(6px, env(safe-area-inset-right, 0px));}
+nav.tabs .in{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);height:var(--nav-h)}
+nav.tabs a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-decoration:none;color:var(--muted);font-size:.72rem;font-weight:700}
+nav.tabs a svg{width:24px;height:24px}
+nav.tabs a[aria-current="page"]{color:var(--accent)}
+nav.tabs a[aria-current="page"] svg .dot{fill:var(--accent)}
+
+/* hero */
+.hero{display:grid;gap:14px;padding-top:6px}
+.hero .sub{font-size:1.05rem;color:var(--muted);max-width:52ch}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+.stat .n{font-family:var(--f-display);font-weight:800;font-size:1.6rem;font-variant-numeric:tabular-nums}
+.stat .l{font-size:.78rem;color:var(--muted);line-height:1.3}
+.go-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.go{display:flex;flex-direction:column;gap:4px;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;min-height:108px}
+.go .t{font-family:var(--f-display);font-weight:700;font-size:1.1rem}
+.go .d{font-size:.86rem;color:var(--muted);line-height:1.35}
+.go .line{height:5px;border-radius:3px;width:44px;margin-bottom:6px}
+.freq{display:grid;gap:8px}
+.freq .it{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center}
+.freq .bar{grid-column:1/-1;height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.freq .bar i{display:block;height:100%;background:var(--accent)}
+.ojo{border-left:4px solid var(--front);background:var(--front-soft);padding:12px 14px;border-radius:0 10px 10px 0}
+.ojo b{display:block;margin-bottom:2px}
+
+/* königsberg */
+.kb svg{width:100%;height:auto;max-width:420px;display:block;margin:0 auto}
+.kb .msg{font-weight:700}
+
+/* graph svg */
+.gwrap{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:6px;overflow:hidden}
+.gwrap svg{width:100%;height:auto;display:block;max-height:300px}
+svg .e{stroke:var(--line);stroke-width:2.5;fill:none}
+svg .ah{fill:var(--line)}
+svg .e.try{stroke:var(--accent);stroke-width:4;stroke-dasharray:7 5}
+svg .ah.try{fill:var(--accent)}
+svg .e.tree{stroke:var(--tree);stroke-width:5}
+svg .ah.tree{fill:var(--tree)}
+svg .e.path{stroke:var(--accent);stroke-width:6}
+svg .ah.path{fill:var(--accent)}
+svg .e.reject{stroke:var(--bad);stroke-width:2.5;stroke-dasharray:3 5;opacity:.75}
+svg .ah.reject{fill:var(--bad)}
+svg .w{font-family:var(--f-mono);font-size:13px;font-weight:600;fill:var(--muted);paint-order:stroke;stroke:var(--card);stroke-width:5px;text-anchor:middle;dominant-baseline:central}
+svg .w.neg{fill:var(--bad)}
+svg .w.sel{fill:var(--tree);font-size:14px}
+svg .hit{stroke:transparent;stroke-width:22;pointer-events:stroke;cursor:pointer}
+svg.ia .n{cursor:pointer}
+svg .n circle{fill:var(--card);stroke:var(--ink);stroke-width:2.5}
+svg .n text{font-family:var(--f-display);font-weight:800;font-size:15px;fill:var(--ink);text-anchor:middle;dominant-baseline:central}
+svg .n.front circle{fill:var(--front-soft);stroke:var(--front);stroke-width:3.5}
+svg .n.cur circle{fill:var(--accent);stroke:var(--accent)}
+svg .n.cur text{fill:#fff}
+svg .n.done circle{fill:var(--tree);stroke:var(--tree)}
+svg .n.done text{fill:#fff}
+svg .nl{font-family:var(--f-mono);font-size:12px;font-weight:600;fill:var(--accent);text-anchor:middle;paint-order:stroke;stroke:var(--card);stroke-width:4px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.78rem;color:var(--muted);padding:4px 6px 2px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:12px;height:12px;border-radius:50%;display:inline-block;border:2px solid}
+
+/* player */
+.player{display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
+.panel,.sec,.stack,.stack-lg,.qcard,.answer{min-width:0}
+.panel{grid-template-columns:minmax(0,1fr)}
+.ptext{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:0 12px 12px 0;padding:12px 14px;min-height:76px}
+.pcount{font-family:var(--f-mono);font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.pctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pctl .btn{flex:1 1 auto;justify-content:center}
+.prog{height:5px;background:var(--line);border-radius:3px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--accent);transition:width .2s}
+.panel{display:grid;gap:10px}
+.tscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table.t{border-collapse:collapse;font-family:var(--f-mono);font-size:.82rem;font-variant-numeric:tabular-nums;width:100%}
+table.t th,table.t td{border:1px solid var(--line);padding:5px 7px;text-align:center;white-space:nowrap}
+table.t th{background:var(--paper);font-weight:600}
+table.t td.chg{background:var(--accent-soft);color:var(--accent);font-weight:700}
+table.t td.kk,table.t th.kk{background:var(--tree-soft)}
+table.t tr.fin td{color:var(--tree);font-weight:700}
+.q-items{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:34px}
+.q-items .qi{font-family:var(--f-mono);font-weight:600;border:1.5px solid var(--front);background:var(--front-soft);border-radius:7px;padding:3px 10px}
+.q-items .empty{color:var(--muted);font-style:italic;font-size:.88rem}
+.plabel{font-size:.78rem;font-weight:700;color:var(--muted)}
+.estatus{font-family:var(--f-mono);font-size:.78rem;padding:2px 6px;border-radius:5px}
+.estatus.ok{background:var(--tree-soft);color:var(--tree)}
+.estatus.no{background:var(--bad-soft);color:var(--bad)}
+.estatus.cur{background:var(--accent-soft);color:var(--accent)}
+
+/* algorithm list & detail */
+.alg-group{display:grid;gap:10px}
+.alg-item{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;width:100%;text-decoration:none;color:inherit}
+.alg-item .stn{width:16px;height:16px;border-radius:50%;border:4px solid var(--c, var(--accent));background:var(--card)}
+.alg-item .nm{font-family:var(--f-display);font-weight:700;font-size:1.05rem;line-height:1.2}
+.alg-item .ds{font-size:.85rem;color:var(--muted);line-height:1.35}
+.alg-item .ar{color:var(--muted);font-size:1.3rem}
+.line-head{display:flex;align-items:center;gap:10px}
+.line-head .bar{flex:1;height:4px;border-radius:2px;background:var(--c)}
+.back{background:none;border:0;padding:6px 0;font-weight:700;color:var(--accent);display:inline-flex;gap:6px;align-items:center}
+.sec{display:grid;gap:8px}
+.sec h3{display:flex;gap:8px;align-items:baseline}
+ol.steps{margin:0;padding:0;list-style:none;counter-reset:s;display:grid;gap:8px}
+ol.steps li{counter-increment:s;display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:start}
+ol.steps li::before{content:counter(s);width:28px;height:28px;border-radius:50%;background:var(--ink);color:var(--paper);font-family:var(--f-mono);font-weight:600;font-size:.85rem;display:grid;place-items:center}
+ul.dots{margin:0;padding-left:20px;display:grid;gap:6px}
+.kv{display:grid;grid-template-columns:minmax(0,38%) minmax(0,1fr);gap:6px 12px;font-size:.95rem}
+.kv dt{font-weight:700}
+.kv dd{margin:0;min-width:0}
+.truco{background:var(--tree-soft);border-radius:12px;padding:12px 14px;font-weight:700}
+.truco span{display:block;font-family:var(--f-mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--tree);margin-bottom:2px}
+.qa{display:grid;gap:4px;padding:12px 0;border-top:1px dashed var(--line)}
+.qa:first-of-type{border-top:0;padding-top:0}
+.qa .q{font-weight:700}
+.toggle{display:inline-flex;border:1.5px solid var(--line);border-radius:999px;overflow:hidden}
+.toggle button{border:0;background:var(--card);padding:7px 14px;font-weight:700;font-size:.88rem}
+.toggle button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.formula{font-family:var(--f-mono);background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:.88rem;overflow-x:auto;white-space:nowrap}
+
+/* repr */
+.repr-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.repr-tabs .chip{white-space:nowrap}
+.lst{font-family:var(--f-mono);font-size:.9rem;display:grid;gap:4px}
+.arr{display:flex;gap:0;flex-wrap:wrap}
+.arr span{border:1px solid var(--line);padding:4px 9px;font-family:var(--f-mono);font-size:.85rem;margin:-1px 0 0 -1px;background:var(--card)}
+.arr span.h{background:var(--tree-soft)}
+.arr .idx{font-size:.65rem;color:var(--muted);display:block;text-align:center}
+.pc{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pc > div{border-radius:10px;padding:10px 12px;font-size:.9rem}
+.pc .pro{background:var(--good-soft)}
+.pc .con{background:var(--bad-soft)}
+.pc b{display:block;font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+
+/* glossary */
+.search{width:100%;border:1.5px solid var(--line);background:var(--card);border-radius:12px;padding:12px 14px;font:inherit;color:inherit}
+.gl-item{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:4px}
+.gl-item .term{font-family:var(--f-display);font-weight:700;font-size:1.05rem}
+.gl-item .ojo{margin-top:6px;font-size:.9rem}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.chips .chip{white-space:nowrap}
+
+/* quiz */
+.qcard{display:grid;gap:14px}
+.qhead{display:flex;justify-content:space-between;align-items:center;gap:10px;font-family:var(--f-mono);font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.qtext{font-family:var(--f-display);font-weight:700;font-size:1.3rem;line-height:1.25}
+.opts{display:grid;gap:8px}
+.opt{text-align:left;border:1.5px solid var(--line);background:var(--card);border-radius:12px;padding:12px 14px;display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;font-size:.98rem;min-height:50px}
+.opt .k{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;font-family:var(--f-mono);font-size:.8rem;font-weight:600}
+.opt.ok{border-color:var(--good);background:var(--good-soft)}
+.opt.ok .k{background:var(--good);border-color:var(--good);color:#fff}
+.opt.ko{border-color:var(--bad);background:var(--bad-soft)}
+.opt.ko .k{background:var(--bad);border-color:var(--bad);color:#fff}
+.opt:disabled{cursor:default}
+.exp{border-radius:12px;padding:12px 14px;font-size:.95rem}
+.exp.ok{background:var(--good-soft)}
+.exp.ko{background:var(--bad-soft)}
+.exp b{display:block}
+.streak{font-weight:700;color:var(--accent)}
+.score-big{font-family:var(--f-display);font-weight:800;font-size:3.4rem;line-height:1;font-variant-numeric:tabular-nums}
+.rate{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.rate .btn{justify-content:center;padding:9px 8px;font-size:.88rem}
+.answer{display:grid;gap:10px}
+.checklist{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+.checklist li{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:start;font-size:.95rem}
+.checklist li::before{content:"";width:18px;height:18px;border-radius:5px;border:2px solid var(--tree);margin-top:3px}
+
+/* match */
+.mgrid{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:8px}
+.mcol{display:grid;gap:8px;align-content:start}
+.mbtn{text-align:left;border:1.5px solid var(--line);background:var(--card);border-radius:12px;padding:10px 12px;font-size:.88rem;line-height:1.3;min-height:58px;transition:transform .15s, opacity .3s}
+.mbtn.term{font-family:var(--f-display);font-weight:700;font-size:.98rem}
+.mbtn.sel{border-color:var(--accent);background:var(--accent-soft)}
+.mbtn.done{border-color:var(--good);background:var(--good-soft);opacity:.55}
+.mbtn.wrong{border-color:var(--bad);background:var(--bad-soft);animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.nvals{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+.nv{display:grid;gap:3px;font-family:var(--f-mono);font-size:.82rem;font-weight:600}
+.nv input,.cin{width:100%;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:8px;font:600 .95rem var(--f-mono);text-align:center}
+.cin{width:54px;padding:6px 4px}
+table.t.mx td{padding:3px}
+.cell{width:46px;height:38px;border:1.5px solid var(--line);background:var(--card);border-radius:7px;font:600 .9rem var(--f-mono)}
+.cell.on{background:var(--tree-soft);border-color:var(--tree);color:var(--tree)}
+input.bad,.cell.bad{border-color:var(--bad)!important;background:var(--bad-soft)!important}
+input.good{border-color:var(--good);background:var(--good-soft)}
+.exlist{display:grid;gap:8px}
+.pfb:empty{display:none}
+.timer{font-family:var(--f-mono);font-weight:600;font-size:1.4rem;font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:420px){ .stats .stat .n{font-size:1.35rem} .qtext{font-size:1.18rem} .pc{grid-template-columns:1fr} }
+</style></head><body>
+
+<main class="wrap" id="app"></main>
+
+<nav class="tabs" aria-label="Secciones">
+  <div class="in">
+    <a href="#inicio" data-tab="inicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="17" r="2.5"/><circle cx="12" cy="7" r="2.5"/><circle class="dot" cx="19" cy="17" r="2.5"/><path d="M6.4 15l4.2-6M13.4 9l4.2 6M7.5 17h9"/></svg>Inicio</a>
+    <a href="#glosario" data-tab="glosario"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/><circle class="dot" cx="11" cy="8.5" r="1.4" stroke="none" fill="currentColor"/></svg>Glosario</a>
+    <a href="#algoritmos" data-tab="algoritmos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="6" r="2.2"/><circle cx="19" cy="6" r="2.2"/><circle class="dot" cx="12" cy="18" r="2.2"/><path d="M7 7l3.8 9M17 7l-3.8 9M7.2 6h9.6"/></svg>Algoritmos</a>
+    <a href="#quiz" data-tab="quiz"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8 9l2 2 4-4M8 15h8"/><circle class="dot" cx="17" cy="15" r="0"/></svg>Quiz</a>
+    <a href="#relacionar" data-tab="relacionar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="7" height="5" rx="1.5"/><rect x="3" y="15" width="7" height="5" rx="1.5"/><rect x="14" y="4" width="7" height="5" rx="1.5"/><rect x="14" y="15" width="7" height="5" rx="1.5"/><path d="M10 6.5l4 11M10 17.5l4-11"/></svg>Relacionar</a>
+  </div>
+</nav>
+
+<script>
+/* ============ utilidades ============ */
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('gp_' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('gp_' + k, JSON.stringify(v)); } catch (e) {} }
+};
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const fmt = x => x === Infinity ? '∞' : String(x);
+const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+/* ============ glosario ============ */
+const CATS = ['Básicos', 'Caminos y ciclos', 'Árboles', 'Flujo y redes', 'Algoritmos y complejidad'];
+const GLOS = [
+  { t: 'Grafo', c: 'Básicos', d: 'Par G = {X, E}: un conjunto X de vértices y un conjunto E de pares de vértices llamados aristas. Cualquier situación con elementos y relaciones entre pares de ellos se puede ver como un grafo.', s: 'Conjunto de vértices más conjunto de pares de vértices (aristas)' },
+  { t: 'Vértice (nodo)', c: 'Básicos', d: 'Cada elemento del conjunto X. Ejemplos: intersecciones de una ciudad, aeropuertos, perfiles de Instagram.', s: 'Cada elemento del conjunto X del grafo' },
+  { t: 'Arista y arco', c: 'Básicos', d: 'Una arista une dos vértices. En grafos dirigidos se le llama arco y tiene origen (cola) y destino (cabeza).', s: 'Une dos vértices; si tiene dirección se llama arco' },
+  { t: 'Grafo no dirigido', c: 'Básicos', d: 'E es un conjunto de pares SIN orden: (u, v) es lo mismo que (v, u).', s: 'Sus aristas son pares sin orden' },
+  { t: 'Grafo dirigido', c: 'Básicos', d: 'E es un conjunto de pares ORDENADOS (origen, destino). Se dibuja con flechas. Ej.: seguidores en Instagram.', s: 'Sus aristas son pares ordenados (origen, destino)' },
+  { t: 'Red', c: 'Flujo y redes', d: 'Grafo con uno o más números asociados a cada arista o arco: distancias, costos, capacidades, etc.', s: 'Grafo con números (costos, capacidades) en sus aristas' },
+  { t: 'Grafo ponderado', c: 'Básicos', d: 'Grafo donde cada arco (xi, xj) tiene un número a(xi, xj) que representa su longitud o costo. La longitud de un camino es la suma de las longitudes de sus arcos.', s: 'Cada arco tiene un peso o longitud asociada' },
+  { t: 'Lazo (loop)', c: 'Básicos', d: 'Una arista cuyos dos extremos son el mismo vértice. En la clase 02 la profe lo llama "ciclo (loop)", pero es UNA sola arista.', s: 'Una sola arista que sale y llega al mismo vértice', o: 'No lo confundas con un ciclo (cycle): el ciclo es un CAMINO de varias aristas que vuelve al vértice inicial. El lazo es una sola arista.' },
+  { t: 'Aristas múltiples / Multigrafo', c: 'Básicos', d: 'Aristas múltiples: más de una arista entre el mismo par de vértices (como los puentes dobles de Königsberg). Un multigrafo es un grafo que las tiene.', s: 'Grafo con más de una arista entre el mismo par de vértices' },
+  { t: 'Grafo simple', c: 'Básicos', d: 'Grafo sin lazos y sin aristas múltiples.', s: 'Grafo sin lazos ni aristas múltiples', o: 'En un examen diferido alguien definió "circuito simple" como "grafo sin lazos ni aristas múltiples". Eso es grafo simple. Un circuito/ciclo simple es otra cosa: un ciclo que no repite vértices.' },
+  { t: 'Grafo completo', c: 'Básicos', d: 'Todos los pares de vértices están conectados. Es el grafo más denso posible: con n vértices tiene n(n−1)/2 aristas.', s: 'Todo par de vértices está conectado; el más denso' },
+  { t: 'Grafo planar', c: 'Básicos', d: 'Se puede dibujar en un plano sin que se crucen sus aristas.', s: 'Se puede dibujar sin que se crucen sus aristas' },
+  { t: 'Dual geométrico (G*)', c: 'Básicos', d: 'Todo grafo planar tiene un dual: se pone un vértice en cada región (cara) del grafo original y se conectan esos vértices atravesando cada arista original.', s: 'Un vértice por cada región del grafo planar, unidos cruzando sus aristas', o: 'En tus notas aparece "dual = todas las aristas que el original no tenía". Eso es el COMPLEMENTO, no el dual.' },
+  { t: 'Complemento de un grafo', c: 'Básicos', d: 'El complemento Gc tiene exactamente los mismos vértices que G, y una arista (u, v) está en Gc si y solo si NO está en G.', s: 'Mismos vértices, solo las aristas que el original no tiene' },
+  { t: 'Incidencia', c: 'Básicos', d: 'Un vértice y una arista son incidentes si el vértice es uno de los extremos de la arista.', s: 'Relación vértice–arista: el vértice es extremo de la arista' },
+  { t: 'Adyacencia', c: 'Básicos', d: 'Dos aristas son adyacentes si inciden en el mismo vértice. Dos vértices son adyacentes (vecinos) si una arista los une.', s: 'Dos aristas que comparten vértice (o dos vértices unidos por una arista)' },
+  { t: 'Grado de un vértice', c: 'Básicos', d: 'Número de aristas que inciden en él. En dirigidos: in-degree (arcos que llegan) y out-degree (arcos que salen).', s: 'Número de aristas que inciden en el vértice' },
+  { t: 'Isomorfismo', c: 'Básicos', d: 'Dos grafos son isomorfos si hay una correspondencia uno a uno entre sus vértices que respeta las aristas: son el mismo grafo dibujado distinto.', s: 'Mismo grafo con otro dibujo: correspondencia 1 a 1 que respeta aristas' },
+  { t: 'Subgrafo', c: 'Básicos', d: 'g es subgrafo de G si todos los vértices de g están en G y cada arista de g une los mismos dos vértices que en G.', s: 'Sus vértices y aristas están en G y unen lo mismo' },
+  { t: 'Subgrafo generado por vértices', c: 'Básicos', d: 'Dado X′ ⊆ X, es el grafo con vértices X′ y TODAS las aristas de E cuyos dos extremos están en X′.', s: 'Se eligen vértices y se toman todas las aristas entre ellos' },
+  { t: 'Subgrafo generado por aristas', c: 'Básicos', d: 'Dado E′ ⊆ E, es el grafo con aristas E′ y los vértices que son extremo de alguna arista de E′.', s: 'Se eligen aristas y se toman sus extremos' },
+  { t: 'Camino (path)', c: 'Caminos y ciclos', d: 'Secuencia de aristas e1, …, en donde los extremos de ei son xi y xi+1. x1 es el vértice inicial y xn+1 el final. Su longitud es el número de aristas.', s: 'Secuencia de aristas encadenadas; su longitud es cuántas aristas tiene' },
+  { t: 'Ciclo (cycle)', c: 'Caminos y ciclos', d: 'Camino cuyo vértice inicial y final es el mismo. Ciclo dirigido: lo mismo con arcos respetando la dirección.', s: 'Camino que empieza y termina en el mismo vértice' },
+  { t: 'Camino o ciclo simple', c: 'Caminos y ciclos', d: 'Ninguno de sus vértices es incidente con más de dos de sus aristas: no repite vértices y no contiene otros ciclos adentro.', s: 'Camino o ciclo que no repite vértices' },
+  { t: 'Trayectoria', c: 'Caminos y ciclos', d: 'Sucesión de vértices donde cada uno es adyacente al siguiente y todas las aristas recorridas son distintas.', s: 'Sucesión de vértices adyacentes sin repetir aristas' },
+  { t: 'Grafo acíclico (DAG)', c: 'Caminos y ciclos', d: 'Grafo dirigido que no tiene ciclos. DAG = Directed Acyclic Graph. Admite ordenamiento topológico (con DFS).', s: 'Grafo dirigido sin ciclos' },
+  { t: 'Grafo conexo', c: 'Caminos y ciclos', d: 'Existe un camino entre cada par de nodos (no tienen que ser adyacentes). Si no, es disconexo y está formado por componentes.', s: 'Hay un camino entre cualquier par de nodos' },
+  { t: 'Componente', c: 'Caminos y ciclos', d: 'Cada uno de los pedazos conexos en que se divide un grafo.', s: 'Cada pedazo conexo de un grafo' },
+  { t: 'Camino euleriano', c: 'Caminos y ciclos', d: 'Recorre TODAS las aristas exactamente una vez. En un grafo conexo existe si hay 0 o exactamente 2 vértices de grado impar; si hay 2, empieza en uno y termina en el otro.', s: 'Recorre cada ARISTA exactamente una vez' },
+  { t: 'Circuito euleriano', c: 'Caminos y ciclos', d: 'Camino euleriano que vuelve al inicio. Existe en un grafo conexo si y solo si todos los vértices tienen grado par.', s: 'Recorre cada arista una vez y vuelve al inicio (todos los grados pares)' },
+  { t: 'Circuito hamiltoniano', c: 'Caminos y ciclos', d: 'Recorrido que pasa por cada VÉRTICE exactamente una vez y regresa al inicial (el último visitado es adyacente al primero).', s: 'Pasa por cada VÉRTICE una sola vez y regresa' },
+  { t: 'Alcanzabilidad', c: 'Caminos y ciclos', d: 'v es alcanzable desde u si existe un camino de u a v. No importa la longitud ni qué aristas: solo que exista. Es transitiva.', s: 'Existe algún camino de u a v' },
+  { t: 'Clausura transitiva (G+)', c: 'Caminos y ciclos', d: 'La alcanzabilidad entre todos los pares de nodos. Se calcula con BFS/DFS desde cada nodo, con Warshall o sumando potencias de la matriz de adyacencia.', s: 'Alcanzabilidad entre todos los pares de nodos' },
+  { t: 'Árbol', c: 'Árboles', d: 'Grafo conexo y sin ciclos. Con n vértices tiene n−1 aristas y entre dos vértices cualesquiera hay un único camino.', s: 'Grafo conexo sin ciclos (n−1 aristas)' },
+  { t: 'Bosque', c: 'Árboles', d: 'Cualquier grafo que no contiene ciclos; es decir, un conjunto de árboles (puede tener varias componentes).', s: 'Grafo sin ciclos: un conjunto de árboles', o: 'En tus notas dice "un bosque es un árbol que no tiene ciclos". Mejor: es un GRAFO sin ciclos, que puede tener varios árboles separados.' },
+  { t: 'Árbol cobertor (spanning tree)', c: 'Árboles', d: 'Subgrafo que es árbol y contiene TODOS los nodos del grafo original con un subconjunto de sus aristas. Sus aristas se llaman ramas; las que sobran, cuerdas.', s: 'Árbol que incluye todos los nodos del grafo' },
+  { t: 'Árbol cobertor mínimo (MST)', c: 'Árboles', d: 'El árbol cobertor cuya suma de pesos es la menor posible. Es único si todos los pesos son distintos. El máximo se obtiene igual, ordenando al revés o cambiando el signo de los pesos.', s: 'Árbol cobertor con la menor suma de pesos', o: 'Tus notas dicen que "el árbol de costo máximo es único y el mínimo no". La regla real es la misma para ambos: es único si todos los pesos son distintos; con empates puede haber varios.' },
+  { t: 'Disconnecting set', c: 'Árboles', d: 'Conjunto de arcos de un grafo conexo que, al quitarlos, aumenta el número de componentes.', s: 'Arcos que al quitarlos desconectan el grafo' },
+  { t: 'Cut set', c: 'Árboles', d: 'Disconnecting set mínimo: si le devuelves cualquiera de sus arcos, el número de componentes vuelve a bajar.', s: 'Disconnecting set mínimo (devolver cualquier arco reconecta)' },
+  { t: 'Flujo', c: 'Flujo y redes', d: 'Manera de enviar objetos (unidades de flujo: personas, paquetes, carros, mensajes) de un lugar a otro en una red.', s: 'Forma de enviar unidades de un lugar a otro en una red' },
+  { t: 'Fuente y sumidero', c: 'Flujo y redes', d: 'Source node: donde empieza el viaje de las unidades; su supply es cuántas hay disponibles. Sink node: hacia donde van; su demand es cuántas deben llegar.', s: 'Source: donde nace el flujo. Sink: donde llega' },
+  { t: 'Capacidad', c: 'Flujo y redes', d: 'Cantidad máxima de flujo que puede pasar por un arco.', s: 'Máximo de flujo que soporta un arco' },
+  { t: 'Conservación del flujo', c: 'Flujo y redes', d: 'Ley que gobierna las redes: flujo que sale − flujo que entra = 0 (en nodos de transbordo). Ej.: f(1,2) + f(1,3) − 10 = 0.', s: 'Flujo que sale − flujo que entra = 0' },
+  { t: 'Flujo factible', c: 'Flujo y redes', d: 'Flujo que cumple la conservación en todos los nodos y respeta las capacidades (cotas inferior y superior) de todos los arcos.', s: 'Cumple conservación y capacidades' },
+  { t: 'Oferta / demanda b(x)', c: 'Flujo y redes', d: 'b(x) > 0: oferta en x. b(x) < 0: −b(x) es la demanda de x. b(x) = 0: nodo de transbordo.', s: 'b(x)>0 oferta, b(x)<0 demanda, b(x)=0 transbordo' },
+  { t: 'Matriz escasa (dispersa)', c: 'Algoritmos y complejidad', d: 'Matriz donde la gran mayoría de los valores son cero (o ∞). La matriz de adyacencia de un grafo con pocas aristas es escasa; conviene guardar solo los valores no nulos (listas).', s: 'Matriz casi toda llena de ceros' },
+  { t: 'Algoritmo', c: 'Algoritmos y complejidad', d: 'Secuencia de pasos diseñada para resolver un problema.', s: 'Secuencia de pasos para resolver un problema' },
+  { t: 'Instancia, tamaño y problema', c: 'Algoritmos y complejidad', d: 'Instancia: un caso concreto (el grafo de un país). Tamaño: bits necesarios para representarla. Problema: el conjunto de todas las instancias posibles.', s: 'Instancia: un caso concreto del problema' },
+  { t: 'Algoritmo exacto vs heurístico', c: 'Algoritmos y complejidad', d: 'Exacto: siempre da la solución óptima (Simplex). Heurístico: da una solución factible "bastante buena" en tiempo razonable (A*, colonia de hormigas, recocido simulado).', s: 'Heurístico: solución factible y buena, no necesariamente óptima' },
+  { t: 'Tipos de heurísticas', c: 'Algoritmos y complejidad', d: 'Construcción: arman la solución una componente a la vez. Mejora: parten de una factible y la mejoran con intercambios. Particionamiento: dividen el problema en pedazos más pequeños.', s: 'Construcción, mejora y particionamiento' },
+  { t: 'P, NP y NP-completo', c: 'Algoritmos y complejidad', d: 'Para problemas de decisión (respuesta sí/no). P: se resuelven en tiempo polinomial. NP: los vistos en clase como "no polinomiales" (exponenciales). NP-completos: subconjunto de los NP, como el TSP.', s: 'Clasificación de problemas de decisión por complejidad' },
+  { t: 'TSP (viajero)', c: 'Algoritmos y complejidad', d: 'Dado un grafo completo con distancias, encontrar el ciclo que pase por todos los vértices exactamente una vez con distancia mínima (un circuito hamiltoniano mínimo). Es NP-completo.', s: 'Ciclo mínimo que visita todos los vértices una vez' },
+  { t: 'Notación O grande', c: 'Algoritmos y complejidad', d: 'Cota de la cantidad de operaciones elementales de un algoritmo según el tamaño de la entrada. Sirve para comparar algoritmos sin depender del lenguaje ni de la máquina.', s: 'Cota de operaciones según el tamaño de la entrada' },
+  { t: 'Algoritmo voraz (greedy)', c: 'Algoritmos y complejidad', d: 'En cada paso toma la mejor opción local esperando llegar al óptimo global. Dijkstra, Prim, Kruskal y Boruvka son voraces.', s: 'Toma la mejor opción local en cada paso' },
+  { t: 'Cadena de Márkov', c: 'Algoritmos y complejidad', d: 'Proceso donde la probabilidad del siguiente estado depende solo del estado actual. La caminata del borracho es un ejemplo. Estado absorbente: uno del que no se sale (su lazo tiene probabilidad 1).', s: 'El siguiente estado depende solo del actual' },
+];
+
+/* ============ grafos de ejemplo ============ */
+const G_MAIN = { directed: false,
+  pos: { A: [40, 128], B: [140, 42], C: [255, 42], D: [140, 214], E: [255, 214], F: [334, 128] },
+  edges: [['A','B',4],['A','D',2],['B','D',1],['B','C',7],['B','E',3],['D','E',8],['C','E',6],['C','F',5],['E','F',9]] };
+const G_FLOYD = { directed: true,
+  pos: { A: [40, 128], B: [160, 42], C: [330, 42], D: [160, 214], E: [270, 160] },
+  edges: [['A','B',6],['A','D',1],['B','C',5],['B','E',2],['D','B',1],['D','E',5],['E','C',2]] };
+const G_BF = { directed: true,
+  pos: { S: [40, 128], A: [160, 42], B: [160, 214], C: [290, 42], D: [320, 200] },
+  edges: [['A','C',1],['C','D',3],['S','A',2],['S','B',5],['B','A',-4],['B','D',6]] };
+
+const ek = (g, u, v) => g.directed ? u + '>' + v : (u < v ? u + '-' + v : v + '-' + u);
+function adjOf(g) {
+  const a = {}; Object.keys(g.pos).forEach(n => a[n] = []);
+  g.edges.forEach(([u, v, w]) => { a[u].push([v, w]); if (!g.directed) a[v].push([u, w]); });
+  Object.values(a).forEach(l => l.sort((x, y) => x[0] < y[0] ? -1 : 1));
+  return a;
+}
+const snap = o => JSON.parse(JSON.stringify(o));
+
+function drawGraph(g, st = {}, o = {}) {
+  const R = 17, nodes = st.nodes || {}, edges = st.edges || {}, labels = st.labels || {};
+  const elabels = st.elabels || {};
+  let out = '', hits = '';
+  g.edges.forEach(([u, v, w]) => {
+    const [x1, y1] = g.pos[u], [x2, y2] = g.pos[v];
+    const k = ek(g, u, v), cls = edges[k] || '';
+    const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L;
+    const sx = x1 + ux * R, sy = y1 + uy * R;
+    const ex = x2 - ux * (R + (g.directed ? 9 : 0)), ey = y2 - uy * (R + (g.directed ? 9 : 0));
+    out += `<line class="e ${cls}" x1="${sx}" y1="${sy}" x2="${ex}" y2="${ey}"/>`;
+    if (g.directed) {
+      const tx = x2 - ux * R, ty = y2 - uy * R, bx = tx - ux * 12, by = ty - uy * 12, px = -uy * 6, py = ux * 6;
+      out += `<polygon class="ah ${cls}" points="${tx},${ty} ${bx + px},${by + py} ${bx - px},${by - py}"/>`;
+    }
+    const mx = (x1 + x2) / 2 - uy * 11, my = (y1 + y2) / 2 + ux * 11;
+    if (!o.hideW || elabels[k]) out += `<text class="w ${w < 0 ? 'neg' : ''} ${elabels[k] ? 'sel' : ''}" x="${mx}" y="${my}">${o.hideW ? elabels[k] : w}${!o.hideW && elabels[k] ? ' · ' + elabels[k] : ''}</text>`;
+    if (o.hit) hits += `<line class="hit" data-k="${k}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+  });
+  out += hits;
+  Object.entries(g.pos).forEach(([n, [x, y]]) => {
+    out += `<g class="n ${nodes[n] || ''}" data-n="${n}"><circle cx="${x}" cy="${y}" r="${R}"/><text x="${x}" y="${y + 1}">${n}</text></g>`;
+    if (labels[n] != null && labels[n] !== '') out += `<text class="nl" x="${x}" y="${y - R - 7}">${labels[n]}</text>`;
+  });
+  return `<svg viewBox="0 0 374 250" role="img" aria-label="Grafo" class="${o.ia ? 'ia' : ''}">${out}</svg>`;
+}
+const LEGEND = `<div class="legend"><span><i style="border-color:var(--front);background:var(--front-soft)"></i>En espera / tentativo</span><span><i style="border-color:var(--accent);background:var(--accent)"></i>Actual</span><span><i style="border-color:var(--tree);background:var(--tree)"></i>Listo</span><span><i style="border-color:var(--bad);border-style:dashed"></i>Descartada</span></div>`;
+
+/* ============ generadores de pasos ============ */
+function recorder() {
+  const s = { nodes: {}, edges: {}, labels: {}, steps: [] };
+  s.push = (text, panel) => s.steps.push({ nodes: snap(s.nodes), edges: snap(s.edges), labels: snap(s.labels), text, panel });
+  return s;
+}
+const qbox = (label, items, hint) => `<div><div class="plabel">${label}${hint ? ` <span class="muted">· ${hint}</span>` : ''}</div><div class="q-items">${items.length ? items.map(x => `<span class="qi">${x}</span>`).join('') : '<span class="empty">vacía</span>'}</div></div>`;
+
+function genBFS(g, s0 = 'A') {
+  const A = adjOf(g), r = recorder();
+  const q = [s0], vis = { [s0]: true }, lvl = { [s0]: 0 }, order = [];
+  r.nodes[s0] = 'front'; r.labels[s0] = 'nivel 0';
+  const pan = () => qbox('Cola (FIFO)', q, 'sale el de la izquierda') + qbox('Orden de visita', order);
+  r.push(`Empezamos en <b>${s0}</b>: lo marcamos como visitado (nivel 0) y lo metemos en la cola.`, pan());
+  while (q.length) {
+    const u = q.shift(); r.nodes[u] = 'cur';
+    const seen = A[u].map(x => x[0]).filter(v => vis[v]);
+    r.push(`Sacamos <b>${u}</b> del frente de la cola y revisamos sus vecinos en orden alfabético.${seen.length ? ` Ya estaban visitados: ${seen.join(', ')} (se ignoran).` : ''}`, pan());
+    for (const [v] of A[u]) {
+      if (vis[v]) continue;
+      vis[v] = true; lvl[v] = lvl[u] + 1; q.push(v);
+      r.nodes[v] = 'front'; r.edges[ek(g, u, v)] = 'tree'; r.labels[v] = 'nivel ' + lvl[v];
+      r.push(`<b>${v}</b> no estaba visitado: lo marcamos (nivel ${lvl[v]}) y lo metemos al <b>final</b> de la cola.`, pan());
+    }
+    r.nodes[u] = 'done'; order.push(u);
+  }
+  r.push(`Cola vacía, terminamos. Orden BFS: <b>${order.join(' → ')}</b>. Las aristas verdes forman el árbol BFS: cada nodo quedó con la menor cantidad posible de aristas desde ${s0}.`, pan());
+  return r.steps;
+}
+
+function genDFS(g, s0 = 'A') {
+  const A = adjOf(g), r = recorder();
+  const st = [s0], vis = {}, parent = {}, order = [];
+  r.nodes[s0] = 'front';
+  const pan = () => qbox('Pila (LIFO)', st, 'el tope es el de la derecha') + qbox('Orden de visita', order);
+  r.push(`Metemos <b>${s0}</b> en la pila.`, pan());
+  while (st.length) {
+    const u = st.pop();
+    if (vis[u]) { r.push(`Sacamos <b>${u}</b> del tope, pero ya estaba visitado: se descarta (aquí se nota el <i>backtracking</i>).`, pan()); continue; }
+    vis[u] = true; order.push(u); r.nodes[u] = 'cur'; r.labels[u] = '#' + order.length;
+    if (parent[u]) r.edges[ek(g, parent[u], u)] = 'tree';
+    const nb = A[u].map(x => x[0]).filter(v => !vis[v]);
+    nb.slice().reverse().forEach(v => { st.push(v); parent[v] = u; r.nodes[v] = 'front'; });
+    r.push(`Sacamos <b>${u}</b> del tope y lo visitamos (#${order.length}).${nb.length ? ` Apilamos sus vecinos no visitados (${nb.join(', ')}) al revés, para que el primero alfabético quede arriba.` : ' No tiene vecinos sin visitar: toca retroceder.'}`, pan());
+    r.nodes[u] = 'done';
+  }
+  r.push(`Pila vacía, terminamos. Orden DFS: <b>${order.join(' → ')}</b>. ${g === G_MAIN ? 'Fíjate que DFS bajó A → B → C → E antes de volver: va a lo profundo primero.' : 'DFS se va a lo profundo antes de retroceder.'}`, pan());
+  return r.steps;
+}
+
+function distTable(N, d, prev, fin, extra) {
+  return `<div class="tscroll"><table class="t"><tr><th>nodo</th><th>d</th><th>prev</th><th>estado</th></tr>${N.map(n => `<tr class="${fin && fin[n] ? 'fin' : ''}"><td>${n}</td><td>${fmt(d[n])}</td><td>${prev[n] || '–'}</td><td>${fin ? (fin[n] ? '<span class="estatus ok">permanente</span>' : (d[n] < Infinity ? '<span class="estatus cur">tentativo</span>' : '–')) : (extra ? extra(n) : '')}</td></tr>`).join('')}</table></div>`;
+}
+
+function genDijkstra(g, target = 'F', s0 = 'A') {
+  const A = adjOf(g), N = Object.keys(g.pos).sort(), r = recorder();
+  const d = {}, prev = {}, fin = {};
+  N.forEach(n => { d[n] = Infinity; prev[n] = null; r.labels[n] = '∞'; });
+  d[s0] = 0; r.labels[s0] = '0'; r.nodes[s0] = 'front';
+  const pan = () => distTable(N, d, prev, fin);
+  r.push(`Inicio: d(${s0}) = 0 y todos los demás en ∞. Nadie tiene etiqueta permanente todavía.`, pan());
+  while (true) {
+    let u = null;
+    N.forEach(n => { if (!fin[n] && d[n] < Infinity && (u === null || d[n] < d[u])) u = n; });
+    if (u === null) break;
+    fin[u] = true; r.nodes[u] = 'cur';
+    if (prev[u]) r.edges[ek(g, prev[u], u)] = 'tree';
+    r.push(`Escogemos el nodo <b>no etiquetado</b> con menor distancia: <b>${u}</b> (d = ${d[u]}). Su etiqueta queda <b>permanente</b>: ya nada la puede mejorar porque no hay pesos negativos.`, pan());
+    for (const [v, w] of A[u]) {
+      if (fin[v]) continue;
+      const k = ek(g, u, v), old = r.edges[k], alt = d[u] + w, before = d[v];
+      r.edges[k] = 'try';
+      if (alt < d[v]) {
+        d[v] = alt; prev[v] = u; r.labels[v] = String(alt); r.nodes[v] = 'front';
+        r.push(`Revisamos ${u}–${v}: d(${u}) + ${w} = ${alt} &lt; ${fmt(before)} → <b>mejora</b>. Ahora d(${v}) = ${alt} y prev(${v}) = ${u}.`, pan());
+      } else {
+        r.push(`Revisamos ${u}–${v}: d(${u}) + ${w} = ${alt} ≥ ${fmt(before)} → no mejora${alt === before ? ' (empate)' : ''}, se queda igual.`, pan());
+      }
+      r.edges[k] = old;
+    }
+    r.nodes[u] = 'done';
+  }
+  const path = []; let x = target; while (x) { path.unshift(x); x = prev[x]; }
+  for (let i = 1; i < path.length; i++) r.edges[ek(g, path[i - 1], path[i])] = 'path';
+  r.push(`Todos etiquetados. Camino de ${s0} a ${target}: se reconstruye <b>de atrás hacia adelante</b> con prev: ${path.slice().reverse().join(' ← ')}. Resultado: <b>${path.join(' → ')}</b> con costo <b>${d[target]}</b>.${g === G_MAIN ? ' Ojo: ir directo A→B costaba 4, pero A→D→B cuesta 3.' : ''}`, pan());
+  return r.steps;
+}
+
+function genBF(g, src = 'S') {
+  const N = [src].concat(Object.keys(g.pos).filter(n => n !== src).sort()), r = recorder();
+  const d = {}, prev = {};
+  N.forEach(n => { d[n] = Infinity; prev[n] = null; r.labels[n] = '∞'; });
+  d[src] = 0; r.labels[src] = '0'; r.nodes[src] = 'front';
+  const order = g.edges.map(e => `${e[0]}→${e[1]}`).join(', ');
+  const pan = (round) => `<div class="plabel">Ronda ${round} de máximo |V|−1 = ${N.length - 1} · orden de los arcos: ${order}</div>` + distTable(N, d, prev, null, n => n === src ? 'origen' : '');
+  r.push(`Inicio: d(${src}) = 0, el resto ∞.${g === G_BF ? ' Ojo: Dijkstra aquí fallaría. Fijaría A con 2 (S→A) sin ver que S→B→A cuesta 5 − 4 = 1.' : ' Los arcos se revisan siempre en el orden indicado.'}`, pan(0));
+  for (let round = 1; round <= N.length - 1; round++) {
+    let changed = false;
+    for (const [u, v, w] of g.edges) {
+      const k = ek(g, u, v), old = r.edges[k]; r.edges[k] = 'try';
+      if (d[u] === Infinity) { r.push(`Ronda ${round}, arco ${u}→${v}: d(${u}) es ∞, todavía no se puede usar.`, pan(round)); r.edges[k] = old; continue; }
+      const alt = d[u] + w;
+      if (alt < d[v]) {
+        const before = d[v];
+        if (prev[v]) r.edges[ek(g, prev[v], v)] = '';
+        d[v] = alt; prev[v] = u; r.labels[v] = String(alt); r.nodes[v] = 'front'; changed = true;
+        r.edges[k] = 'tree';
+        r.push(`Ronda ${round}, arco ${u}→${v}: ${d[u]} + (${w}) = ${alt} &lt; ${fmt(before)} → <b>actualizamos</b> d(${v}) = ${alt}.${w < 0 ? ' ¡El arco negativo funciona como una recompensa!' : ''}`, pan(round));
+      } else {
+        r.edges[k] = old;
+        r.push(`Ronda ${round}, arco ${u}→${v}: ${d[u]} + (${w}) = ${alt} ≥ ${fmt(d[v])} → sin cambio.`, pan(round));
+      }
+    }
+    if (!changed) {
+      N.forEach(n => r.nodes[n] = 'done');
+      r.push(`En la ronda ${round} <b>no cambió nada</b>, así que paramos aquí: no hace falta llegar a |V|−1 = ${N.length - 1} rondas.${g === G_BF ? ` Con este orden de arcos hicieron falta ${round} rondas; con un orden mejor (S→A, S→B, B→A, A→C, C→D, B→D) bastaría una sola pasada más la de verificación.` : ''}`, pan(round));
+      break;
+    }
+  }
+  r.push(`Resultado: ${N.filter(n => n !== src).map(n => `d(${n}) = ${fmt(d[n])}`).join(', ')}. Para detectar un <b>ciclo negativo</b>: si después de |V|−1 rondas todavía se pudiera mejorar algo, habría un ciclo negativo y no existiría camino mínimo.`, pan('final'));
+  return r.steps;
+}
+
+function genFloyd(g) {
+  const N = Object.keys(g.pos).sort(), n = N.length, r = recorder();
+  const D = N.map(i => N.map(j => i === j ? 0 : Infinity));
+  g.edges.forEach(([u, v, w]) => { D[N.indexOf(u)][N.indexOf(v)] = w; });
+  const mat = (k, chg) => `<div class="tscroll"><table class="t"><tr><th></th>${N.map((c, j) => `<th class="${j === k ? 'kk' : ''}">${c}</th>`).join('')}</tr>${D.map((row, i) => `<tr><th class="${i === k ? 'kk' : ''}">${N[i]}</th>${row.map((x, j) => `<td class="${chg.has(i + ',' + j) ? 'chg' : ((i === k || j === k) ? 'kk' : '')}">${fmt(x)}</td>`).join('')}</tr>`).join('')}</table></div>`;
+  r.push(`Inicialización (k = 0): en cada celda va el peso del arco directo, ∞ si no hay arco y 0 en la diagonal.${g === G_FLOYD ? ' Este es el mismo grafo de la clase 08.' : ''}`, mat(-1, new Set()));
+  for (let k = 0; k < n; k++) {
+    const chg = new Set(), msgs = [];
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      if (D[i][k] + D[k][j] < D[i][j]) {
+        msgs.push(`d(${N[i]},${N[j]}): ${fmt(D[i][j])} → ${D[i][k]} + ${D[k][j]} = ${D[i][k] + D[k][j]}`);
+        D[i][j] = D[i][k] + D[k][j]; chg.add(i + ',' + j);
+      }
+    }
+    r.nodes = {}; r.nodes[N[k]] = 'cur';
+    for (let q = 0; q < k; q++) r.nodes[N[q]] = 'done';
+    r.push(`Fase k = ${k + 1}: ¿sale más barato ir de i a j haciendo escala en <b>${N[k]}</b>? Se aplica d[i][j] = min(d[i][j], d[i][${N[k]}] + d[${N[k]}][j]). ${msgs.length ? 'Cambios: <b>' + msgs.join('; ') + '</b>.' : '<b>No hay cambios</b>: ningún camino mejora pasando por ' + N[k] + '.'}`, mat(k, chg));
+  }
+  r.nodes = {}; N.forEach(x => r.nodes[x] = 'done');
+  r.push(`Después de la fase k = ${n} la matriz tiene la distancia mínima entre cada par de nodos (∞ = no hay camino).${g === G_FLOYD ? ' Fila A: 0, 2, 6, 1, 4.' : ''}`, mat(-1, new Set()));
+  return r.steps;
+}
+
+function compTable(N, comp) { return `<div class="plabel">Vector de componentes (vector paralelo)</div><div class="tscroll"><table class="t"><tr>${N.map(n => `<th>${n}</th>`).join('')}</tr><tr>${N.map(n => `<td>${comp[n]}</td>`).join('')}</tr></table></div>`; }
+
+function genKruskal(g, mode = 'min') {
+  const N = Object.keys(g.pos).sort(), r = recorder();
+  const E = g.edges.slice().sort((a, b) => mode === 'min' ? a[2] - b[2] : b[2] - a[2]);
+  const comp = {}; N.forEach((n, i) => comp[n] = i + 1);
+  const status = {}; let taken = 0, total = 0;
+  const pan = () => compTable(N, comp) + `<div class="plabel">Aristas ordenadas ${mode === 'min' ? 'de menor a mayor' : 'de MAYOR a menor'}</div><div class="q-items">${E.map(([u, v, w]) => { const k = u + v; const s = status[k]; return `<span class="estatus ${s === 'ok' ? 'ok' : s === 'no' ? 'no' : ''}" style="border:1px solid var(--line)">${u}${v}·${w}</span>`; }).join('')}</div>`;
+  r.push(`Cada vértice empieza como su propio árbol: un bosque de ${N.length} árboles. Ordenamos las aristas ${mode === 'min' ? 'de la más barata a la más cara' : 'de la más cara a la más barata (árbol MÁXIMO)'}.`, pan());
+  for (const [u, v, w] of E) {
+    if (taken === N.length - 1) break;
+    const k = ek(g, u, v);
+    if (comp[u] !== comp[v]) {
+      const a = Math.min(comp[u], comp[v]), b = Math.max(comp[u], comp[v]);
+      N.forEach(n => { if (comp[n] === b) comp[n] = a; });
+      r.edges[k] = 'tree'; r.nodes[u] = r.nodes[v] = 'done'; status[u + v] = 'ok'; taken++; total += w;
+      r.push(`Arista <b>${u}–${v} (${w})</b>: ${u} y ${v} estaban en componentes distintas → <b>se agrega</b> y se unen (todos los de la componente ${b} pasan a ser ${a}). Llevamos ${taken} de ${N.length - 1} aristas.`, pan());
+    } else {
+      r.edges[k] = 'reject'; status[u + v] = 'no';
+      r.push(`Arista <b>${u}–${v} (${w})</b>: ${u} y ${v} ya tienen la misma componente (${comp[u]}) → formaría un <b>ciclo</b>, se descarta.`, pan());
+    }
+  }
+  r.push(`Ya hay n − 1 = ${N.length - 1} aristas: el bosque quedó en un solo árbol. Peso total del árbol cobertor ${mode === 'min' ? 'mínimo' : 'MÁXIMO'}: <b>${total}</b>.`, pan());
+  return r.steps;
+}
+
+function genPrim(g, mode = 'min', s0 = 'A') {
+  const N = Object.keys(g.pos).sort(), r = recorder();
+  const inT = { [s0]: true }, chosen = []; let total = 0;
+  r.nodes[s0] = 'done';
+  const pan = (cands) => qbox('En el árbol', N.filter(n => inT[n])) + qbox('Candidatas (salen del árbol hacia afuera)', (cands || []).map(([u, v, w]) => `${u}${v}·${w}`));
+  r.push(`Empezamos en <b>${s0}</b>. El subárbol tiene un solo vértice.`, pan());
+  while (Object.keys(inT).length < N.length) {
+    const c = g.edges.filter(([u, v]) => !!inT[u] !== !!inT[v]);
+    c.forEach(([u, v]) => r.edges[ek(g, u, v)] = 'try');
+    r.push(`Miramos todas las aristas con un extremo <b>dentro</b> del subárbol y otro <b>fuera</b>: ${c.map(([u, v, w]) => `${u}–${v} (${w})`).join(', ')}.`, pan(c));
+    const best = c.reduce((b, e) => (mode === 'min' ? e[2] < b[2] : e[2] > b[2]) ? e : b);
+    c.forEach(([u, v]) => { const k = ek(g, u, v); if (r.edges[k] === 'try') delete r.edges[k]; });
+    const [u, v, w] = best, nw = inT[u] ? v : u;
+    inT[nw] = true; r.edges[ek(g, u, v)] = 'tree'; r.nodes[nw] = 'done'; total += w; chosen.push(best);
+    r.push(`La ${mode === 'min' ? 'más barata' : 'más cara'} es <b>${u}–${v} (${w})</b>: la agregamos y <b>${nw}</b> entra al subárbol. Nunca forma ciclo, porque une uno de adentro con uno de afuera.`, pan());
+  }
+  r.push(`El subárbol ya contiene todos los vértices. Peso total: <b>${total}</b>, el mismo que daría Kruskal${mode === 'min' ? '' : ' en modo máximo'}.`, pan());
+  return r.steps;
+}
+
+function genBoruvka(g) {
+  const N = Object.keys(g.pos).sort(), r = recorder();
+  const comp = {}; N.forEach((n, i) => comp[n] = i + 1);
+  let total = 0, round = 0;
+  const groups = () => { const m = {}; N.forEach(n => (m[comp[n]] = m[comp[n]] || []).push(n)); return m; };
+  const pan = () => `<div class="plabel">Componentes (buckets)</div><div class="q-items">${Object.values(groups()).map(gr => `<span class="qi">{${gr.join(',')}}</span>`).join('')}</div>`;
+  r.push(`Cada vértice es su propia componente: ${N.length} componentes.`, pan());
+  while (Object.keys(groups()).length > 1) {
+    round++;
+    const gs = groups(), pick = {}, lines = [];
+    Object.entries(gs).forEach(([cid, members]) => {
+      let best = null;
+      g.edges.forEach(e => { const [u, v, w] = e; const inU = comp[u] == cid, inV = comp[v] == cid; if (inU !== inV && (!best || w < best[2])) best = e; });
+      if (best) { pick[ek(g, best[0], best[1])] = best; lines.push(`{${members.join(',')}} → ${best[0]}–${best[1]} (${best[2]})`); }
+    });
+    Object.keys(pick).forEach(k => r.edges[k] = 'try');
+    r.push(`Ronda ${round}: <b>cada componente, al mismo tiempo</b>, elige su arista más barata hacia otra componente: ${lines.join('; ')}.`, pan());
+    Object.entries(pick).forEach(([k, [u, v, w]]) => {
+      if (comp[u] !== comp[v]) { const a = Math.min(comp[u], comp[v]), b = Math.max(comp[u], comp[v]); N.forEach(n => { if (comp[n] === b) comp[n] = a; }); total += w; r.edges[k] = 'tree'; r.nodes[u] = r.nodes[v] = 'done'; }
+      else r.edges[k] = 'tree';
+    });
+    r.push(`Agregamos todas esas aristas a la vez (las repetidas cuentan una sola vez) y fusionamos componentes. Quedan ${Object.keys(groups()).length}.`, pan());
+  }
+  r.push(`Queda una sola componente en ${round} rondas: es el árbol cobertor mínimo, peso <b>${total}</b>. ${g === G_MAIN ? 'Mismo árbol que Kruskal y Prim, porque los pesos son todos distintos.' : ''}`, pan());
+  return r.steps;
+}
+
+/* ============ algoritmos: contenido ============ */
+const LINES = { 'Recorridos': '#E4570E', 'Caminos de costo mínimo': '#137A8A', 'Árboles cobertores': '#7A4FC4', 'Flujo y otros': '#C08A00' };
+const ALGS = [
+  { id: 'repr', cat: 'Recorridos', name: 'Representar un grafo en memoria', short: 'Las 5 formas que siempre preguntan, con ventajas y desventajas.', special: 'repr' },
+  { id: 'bfs', cat: 'Recorridos', name: 'BFS · Búsqueda en anchura', short: 'Explora por niveles usando una cola.', anim: g => genBFS(G_MAIN), graph: G_MAIN,
+    idea: 'Piensa en una piedra que cae en un lago: las ondas se expanden en círculos. BFS hace lo mismo. Desde el nodo inicial visita primero a todos sus vecinos (nivel 1), luego a los vecinos de esos vecinos (nivel 2), y así. No baja al siguiente nivel hasta terminar el actual.',
+    pasos: ['Marcar el nodo inicial como visitado y meterlo en la cola.', 'Sacar el nodo del frente de la cola.', 'A cada vecino que no esté visitado: marcarlo y meterlo al final de la cola.', 'Repetir 2 y 3 hasta que la cola quede vacía (o hasta encontrar el destino).'],
+    edd: [['Cola FIFO', 'Guarda la frontera: los nodos descubiertos que faltan por explorar. El primero que entra es el primero que sale, por eso avanza por niveles.'], ['Vector booleano de visitados', 'Evita meter un nodo dos veces y quedarse dando vueltas en un ciclo.'], ['Vector de padres o niveles (opcional)', 'Para reconstruir el camino o saber a cuántas aristas quedó cada nodo.']],
+    comp: 'O(V + E) con lista de adyacencia; O(V²) con matriz de adyacencia.',
+    usos: 'Camino con menos aristas en grafos no ponderados (GPS con menos intersecciones, grados de separación en redes sociales), vecino más cercano en redes P2P, saber si un grafo es bipartito, flujo máximo (Ford-Fulkerson) y búsquedas en IA.',
+    truco: 'BFS es la cola del banco: el que llega primero, se atiende primero. Por eso va nivel por nivel.',
+    parcial: [['¿En cuál búsqueda se usa la cola?', 'En BFS. DFS usa pila.'], ['¿Encuentra el camino más corto?', 'Sí, en número de aristas (grafos no ponderados). Además es completo: si hay solución, la encuentra.'], ['¿Se beneficia del paralelismo?', 'Sí: todos los nodos de un mismo nivel se pueden procesar en paralelo.']] },
+  { id: 'dfs', cat: 'Recorridos', name: 'DFS · Búsqueda en profundidad', short: 'Va hasta el fondo de cada rama usando una pila.', anim: g => genDFS(G_MAIN), graph: G_MAIN,
+    idea: 'Es como recorrer un laberinto con la mano pegada a la pared: sigues un pasillo hasta el fondo y solo cuando no hay salida regresas (backtracking) al último cruce que tenía opciones pendientes. Charles Trémaux lo usó en el siglo XIX para resolver laberintos.',
+    pasos: ['Meter el nodo inicial en la pila.', 'Sacar el nodo del tope. Si ya estaba visitado, descartarlo.', 'Marcarlo como visitado y apilar sus vecinos no visitados.', 'Repetir 2 y 3 hasta que la pila quede vacía. En la versión recursiva, la pila es la de llamadas.'],
+    edd: [['Pila LIFO', 'Guarda los caminos pendientes. Lo último que entra es lo primero que se explora, por eso se va hacia lo profundo y permite retroceder.'], ['Vector booleano de visitados', 'Evita visitar dos veces un nodo y caer en ciclos infinitos.'], ['Vector de padres (opcional)', 'Para armar el árbol DFS o reconstruir el camino.']],
+    comp: 'O(V + E) con lista de adyacencia.',
+    usos: 'Componentes conexas, ordenamiento topológico de un DAG, detectar ciclos, puentes y puntos de articulación, laberintos, sudokus por backtracking y recorrer carpetas de un sistema de archivos.',
+    truco: 'DFS es una pila de platos: siempre tomas el de arriba. Por eso se hunde en una rama antes de mirar las demás.',
+    parcial: [['¿Qué estructuras auxiliares requiere y para qué?', 'Pila (frontera, permite backtracking) y vector de visitados (no repetir ni ciclar). Esta pregunta salió en 2021 y en 2024.'], ['¿Garantiza el camino más corto?', 'No. Puede llegar al destino por un camino largo, y en grafos infinitos se puede perder en una rama sin fin.']] },
+  { id: 'alc', cat: 'Recorridos', name: 'Alcanzabilidad y Warshall', short: '¿Se puede llegar de s a t? Y para todos los pares: clausura transitiva.',
+    idea: 'La pregunta es solo si existe un camino, sin importar su largo. El algoritmo de búsqueda de camino de la clase 04 marca como "alcanzables" los nodos a los que se llega y los va escaneando uno por uno. Para saberlo entre TODOS los pares se calcula la clausura transitiva.',
+    pasos: ['NODE = s.', 'Marcar como alcanzables los nodos a los que llegan arcos desde NODE. Marcar NODE como escaneado.', 'Si t está alcanzable, parar: el camino existe.', 'Tomar un alcanzable no escaneado como NODE y volver al paso 2. Si no queda ninguno, no hay camino.'],
+    formulas: ['Warshall:  R[i][j] = R[i][j] OR ( R[i][k] AND R[k][j] )   para k = 1..n', 'Potencias:  A^k cuenta los caminos de longitud EXACTA k', 'Booleano:  R = I ∨ A ∨ A² ∨ … ∨ A^(n−1)'],
+    edd: [['Matriz booleana', 'R[i][j] = 1 si j es alcanzable desde i.'], ['Conjuntos alcanzables / escaneados', 'En la búsqueda de camino entre s y t.']],
+    comp: 'BFS/DFS desde cada nodo: O(n·(n + m)). Warshall: O(n³).',
+    usos: 'Saber qué tareas dependen de otras, qué páginas se alcanzan desde un enlace, conectividad de una red.',
+    truco: 'Si A llega a B y B llega a C, entonces A llega a C: la alcanzabilidad es transitiva.',
+    parcial: [['¿Por qué se suma solo hasta A^(n−1)?', 'Porque un camino simple con n vértices tiene como máximo n−1 aristas. Se suma la identidad I para que cada nodo se alcance a sí mismo.'], ['Método numérico vs booleano', 'Numérico: multiplicar y sumar normal; si no conviertes a 1 los valores ≥ 1, obtienes el NÚMERO de caminos. Booleano: AND en vez de ×, OR en vez de +.']] },
+  { id: 'dijkstra', cat: 'Caminos de costo mínimo', name: 'Dijkstra', short: 'Voraz, etiqueta permanente. Solo pesos no negativos.', anim: g => genDijkstra(G_MAIN), graph: G_MAIN,
+    idea: 'Mantiene una distancia tentativa a cada nodo. En cada paso escoge el nodo sin etiqueta permanente que tenga la menor distancia y la vuelve definitiva: como no hay pesos negativos, ningún desvío por otro nodo puede salir más barato. Después intenta mejorar a sus vecinos. Es un algoritmo voraz (greedy) de etiquetado permanente, propuesto en 1959.',
+    pasos: ['d(origen) = 0, d(resto) = ∞, prev indefinido.', 'Escoger el nodo no etiquetado con menor d y etiquetarlo permanente. Si todos los no etiquetados tienen ∞, el resto es inalcanzable: parar.', 'Para cada vecino v no etiquetado: si d(u) + w(u,v) < d(v), actualizar d(v) y prev(v) = u.', 'Repetir hasta etiquetar el destino o todos los nodos.', 'Reconstruir el camino con prev, de atrás hacia adelante.'],
+    edd: [['Vectores d[ ] y prev[ ]', 'Distancia tentativa desde el origen y predecesor de cada nodo.'], ['Vector de etiquetados', 'Marca qué distancias ya son permanentes.'], ['Cola de prioridad (heap)', 'Para encontrar rápido el nodo de menor d. Las mejoras a Dijkstra han sido justamente en estas estructuras.']],
+    comp: 'O(V²) con arreglos; O((V + E) log V) con heap.',
+    usos: 'GPS (Google Maps, Waze), enrutamiento de paquetes (OSPF), planificación de transporte y logística.',
+    truco: 'Dijkstra nunca se arrepiente: lo que etiqueta, queda. Por eso un arco negativo lo engaña.',
+    parcial: [['¿Por qué se descarta con pesos negativos?', 'Porque puede etiquetar como definitiva una distancia que después un arco negativo mejoraría. Te da un mínimo malo y no se da cuenta.'], ['¿Por qué el camino se arma de atrás hacia adelante (preconcatenación)?', 'Porque solo se guarda el predecesor de cada nodo.'], ['¿En qué caso no visita un nodo?', 'Cuando ningún arco llega a ese nodo desde el origen: queda en ∞.'], ['¿A qué se refiere la "nueva distancia"?', 'Siempre es la distancia acumulada desde el nodo origen, no la del último arco.'], ['¿Cuándo maneja bien un arco negativo? (según la clase)', 'Cuando esa arista negativa es la primera visitada, saliendo del origen.'], ['¿Se beneficia del paralelismo?', 'Poco: es greedy, cada paso necesita el mínimo del paso anterior, así que las decisiones son secuenciales.']] },
+  { id: 'bf', cat: 'Caminos de costo mínimo', name: 'Bellman-Ford', short: 'Acepta arcos negativos: relaja todo hasta que nada cambie.', anim: g => genBF(G_BF), graph: G_BF,
+    idea: 'En vez de dejar etiquetas para siempre, revisa (relaja) todos los arcos una y otra vez. Si un arco mejora una distancia, la actualiza aunque ese nodo pareciera listo. Con |V|−1 rondas siempre alcanza, porque un camino simple tiene como máximo |V|−1 arcos. En clase se vio como Dijkstra modificado: cuando un nodo etiquetado mejora, se le quita la etiqueta a él y a sus arcos para volver a revisarlo.',
+    pasos: ['d(origen) = 0, el resto ∞.', 'Una ronda: para cada arco (u, v), si d(u) + w < d(v), actualizar d(v) y prev(v).', 'Repetir hasta |V|−1 rondas, o parar antes si una ronda completa no cambió nada.', 'Ronda de verificación: si todavía algo mejora, hay un ciclo negativo y no existe camino mínimo.'],
+    edd: [['Vectores d[ ] y prev[ ]', 'Igual que en Dijkstra.'], ['Lista de arcos', 'Es la representación natural: cada ronda recorre todos los arcos.']],
+    comp: 'O(V · E). Más lento que Dijkstra.',
+    usos: 'Enrutamiento por vector distancia (RIP), arbitraje de divisas (un ciclo negativo = ganar dinero sin riesgo), rutas con descuentos o penalizaciones.',
+    truco: 'Bellman-Ford es el desconfiado: revisa todo otra vez hasta que nada cambie.',
+    parcial: [['¿Qué importancia tiene el orden en que se recorren los arcos?', 'No cambia el resultado final, pero sí cuántas iteraciones hacen falta: con un mal orden puede tomar una iteración más, sobre todo con arcos negativos.'], ['Si una iteración no produce cambios, ¿vale la pena seguir hasta |V|−1?', 'No. Si no cambió nada, ya no va a cambiar. Pero si cambió algo, por mínimo que sea, hay que continuar.'], ['¿Qué significa un peso negativo?', 'Es como una "recompensa": usar ese arco acorta el camino en vez de alargarlo.']] },
+  { id: 'floyd', cat: 'Caminos de costo mínimo', name: 'Floyd-Warshall', short: 'Todos los pares a la vez: ¿conviene hacer escala en k?', anim: g => genFloyd(G_FLOYD), graph: G_FLOYD,
+    idea: 'Calcula el camino mínimo entre todos los pares de nodos. Arranca con la matriz de pesos directos y, nodo por nodo, pregunta: ¿sale más barato ir de i a j haciendo escala en k? Antes de la fase k, cada d[i][j] es el mejor camino que solo usa como intermedios a los nodos 1..k−1. También se conoce como Floyd, Roy-Warshall o Roy-Floyd.',
+    pasos: ['Inicializar D: w(i,j) si hay arco, ∞ si no, 0 en la diagonal.', 'Para k = 1..n, para cada par (i, j): d[i][j] = min(d[i][j], d[i][k] + d[k][j]).', 'Después de la fase n, D tiene todas las distancias mínimas (∞ = no hay camino).'],
+    formulas: ['d[i][j] = min( d[i][j],  d[i][k] + d[k][j] )'],
+    edd: [['Matriz de distancias n×n', 'Se va actualizando en el mismo lugar.'], ['Matriz de predecesores (opcional)', 'Para reconstruir los caminos.']],
+    comp: 'Tiempo O(V³), espacio O(V²). Poco eficiente en grafos grandes y dispersos.',
+    usos: 'Tablas de distancias entre todas las ciudades, rutas en redes pequeñas o densas. Su versión booleana es Warshall (clausura transitiva).',
+    truco: 'En la fase k, la fila k y la columna k no cambian: son las que se usan como escala.',
+    parcial: [['¿Acepta costos negativos?', 'Sí, pero no ciclos negativos.'], ['¿Se beneficia del paralelismo?', 'Sí: dentro de una fase k, todos los pares (i, j) se pueden actualizar a la vez.']] },
+  { id: 'dantzig', cat: 'Caminos de costo mínimo', name: 'Método de Dantzig', short: 'Todos los pares, con matrices que crecen D1, D2, …, Dn.',
+    idea: 'También calcula caminos mínimos entre todos los pares, pero va construyendo la matriz de a un nodo: D1 (solo el nodo 1), D2 (nodos 1 y 2), …, Dn. Cada vez que agrega un nodo nuevo k hace dos cosas. Primero calcula las distancias del nodo nuevo hacia los viejos y de los viejos hacia el nuevo, usando la matriz anterior. Después revisa si los viejos entre sí mejoran haciendo escala en el nuevo. Repásalo con el Excel que dieron en clase.',
+    pasos: ['Numerar los nodos 1..n. D1 = [0].', 'Al agregar el nodo k: d(i,k) = min sobre j<k de { d(i,j) + w(j,k) } y d(k,i) = min sobre j<k de { w(k,j) + d(j,i) }.', 'Luego, para los viejos i, j < k: d(i,j) = min( d(i,j), d(i,k) + d(k,j) ).', 'Repetir hasta Dn.'],
+    edd: [['Matrices D1 … Dn', 'Cada una es una fila y una columna más grande que la anterior.']],
+    comp: 'O(n³).',
+    usos: 'Mismo uso que Floyd-Warshall. Es el ejemplo clásico de algoritmo de grafos que se beneficia del paralelismo.',
+    truco: 'Dantzig es una matriz que crece: cada nodo nuevo trae su fila y su columna.',
+    parcial: [['¿Se pueden calcular en paralelo las distancias viejos↔nuevo y las de los viejos entre sí haciendo escala en el nuevo?', 'No. Para usar el nodo nuevo como escala primero necesitas conocer las distancias hacia él y desde él.'], ['¿Gasta mucha memoria? ¿Cómo se resuelve?', 'Sí, porque las matrices van creciendo y se guardan todas. Se resuelve reciclando matrices: se sobrescribe la anterior al calcular la siguiente.'], ['¿Por qué es bueno el paralelismo aquí?', 'Dentro de cada paso, las filas y columnas se calculan de forma independiente. Según Meyer (2018), la versión paralela de Dantzig reduce el tiempo hasta en 70%.']] },
+  { id: 'kruskal', cat: 'Árboles cobertores', name: 'Kruskal', short: 'Ordena las aristas y toma las que no forman ciclo.', anim: (m) => genKruskal(G_MAIN, m), graph: G_MAIN, modes: true,
+    idea: 'Ordena todas las aristas de la más barata a la más cara y las toma una por una. Si la arista une dos pedazos distintos del bosque, la acepta. Si sus dos extremos ya están conectados, la descarta porque formaría un ciclo. Termina cuando tiene n−1 aristas.',
+    pasos: ['Crear un bosque: cada vértice es un árbol separado.', 'Poner todas las aristas en un conjunto ordenado por peso (heap o lista ordenada).', 'Sacar la de menor peso. Si conecta dos árboles distintos, agregarla y unirlos. Si no, desecharla.', 'Parar cuando el árbol tenga n−1 aristas.'],
+    edd: [['Lista de aristas ordenada (o heap)', 'Para sacar siempre la más barata.'], ['Vector de componentes (vector paralelo / union-find)', 'Dice a qué árbol pertenece cada nodo. Si dos nodos tienen la misma etiqueta, la arista entre ellos forma ciclo.']],
+    comp: 'O(E log E), dominado por el ordenamiento.',
+    usos: 'Diseño de redes al menor costo: tuberías desde plataformas petroleras, cableado, carreteras.',
+    pros: ['Simple de entender e implementar.', 'Muy bueno en grafos dispersos (pocas aristas).', 'La lista de aristas es su representación natural.', 'Pasar al árbol máximo es solo ordenar al revés.'],
+    cons: ['Hay que ordenar TODAS las aristas primero.', 'En grafos densos es más lento que Prim.', 'Necesita una estructura extra para detectar ciclos.'],
+    truco: 'Kruskal compra lo más barato del catálogo, siempre que no repita algo que ya tiene conectado.',
+    parcial: [['¿Cómo saber que una arista no genera un ciclo?', 'Si sus dos extremos están en componentes distintas (distinta etiqueta en el vector de componentes), no hay ciclo.'], ['Árbol cobertor MÁXIMO', 'Mismo algoritmo, ordenando de mayor a menor (o cambiando el signo de los pesos). Prueba el botón "Máximo" arriba.']] },
+  { id: 'prim', cat: 'Árboles cobertores', name: 'Prim', short: 'Un solo árbol que crece desde un vértice.', anim: (m) => genPrim(G_MAIN, m), graph: G_MAIN, modes: true,
+    idea: 'Hace crecer un único árbol desde un vértice cualquiera, como una mancha de aceite. En cada paso mira todas las aristas que salen del subárbol hacia afuera y toma la más barata. Nunca forma ciclos, porque siempre une un nodo de adentro con uno de afuera. Es de 1957.',
+    pasos: ['Empezar en cualquier vértice. Seleccionar el arco de menor peso que lo conecte con otro.', 'En cada iteración hay un subárbol (que todavía no es cobertor). Escoger el arco de menor peso que conecte un vértice del subárbol con uno que no esté en él.', 'Si el subárbol contiene todos los vértices, parar. Si no, volver al paso 2.'],
+    edd: [['Vector de visitados', 'Qué nodos ya están en el árbol.'], ['Vectores paralelos de costo mínimo y nodo más cercano', 'Para cada nodo de afuera: cuánto cuesta conectarlo y a cuál nodo del árbol. También se puede usar un heap.']],
+    comp: 'O(V²) con matriz de adyacencia; O(E log V) con heap.',
+    usos: 'Igual que Kruskal; conviene más cuando el grafo es denso.',
+    pros: ['No necesita ordenar todas las aristas.', 'Muy bueno en grafos densos.', 'No necesita detectar ciclos.'],
+    cons: ['Más difícil de paralelizar: crece un solo árbol.', 'Con lista de aristas es incómodo; prefiere matriz o lista de adyacencia.'],
+    truco: 'Prim es una mancha de aceite: crece desde un punto.',
+    parcial: [['Dos aplicaciones de los vectores paralelos en árboles cobertores', '1) Guardar el costo mínimo de conexión (y el nodo más cercano) de cada vértice, como en Prim. 2) Guardar la componente de cada nodo para saber si una arista genera ciclo, como en Kruskal.']] },
+  { id: 'boruvka', cat: 'Árboles cobertores', name: 'Boruvka', short: 'Todas las componentes eligen su arista más barata a la vez.', anim: () => genBoruvka(G_MAIN), graph: G_MAIN,
+    idea: 'Todas las componentes trabajan al mismo tiempo. Cada una elige su arista más barata hacia otra componente, se agregan todas juntas y se fusionan. Como cada ronda al menos divide entre 2 el número de componentes, termina muy rápido. Es el más paralelizable de los tres.',
+    pasos: ['Cada vértice es su propia componente.', 'Para cada componente, encontrar la arista más barata que la conecte con otra componente.', 'Agregar al árbol todas esas aristas a la vez (sin repetir) y fusionar las componentes.', 'Repetir hasta que quede una sola componente.'],
+    edd: [['Lista de componentes (buckets)', 'Cada bucket guarda sus nodos y los arcos que ya tiene.'], ['Matriz o lista de adyacencia', 'Para buscar la arista más barata que sale de cada componente.']],
+    comp: 'O(E log V).',
+    usos: 'Árboles cobertores en computación paralela o distribuida.',
+    truco: 'Boruvka es una fiesta: cada grupo jala de la mano a su vecino más cercano, todos al mismo tiempo.',
+    parcial: [['¿Por qué se beneficia del paralelismo?', 'Porque cada componente busca su arista más barata de forma independiente en cada ronda.']] },
+  { id: 'flujo', cat: 'Flujo y otros', name: 'Flujo de costo mínimo', short: 'Enviar todo lo que piden al menor costo, sin pasar capacidades.',
+    idea: 'Tienes una red dirigida donde cada arco (x, y) tiene un costo por unidad c(x, y) y quizás cotas de flujo. Cada nodo tiene un valor b(x): oferta si es positivo, demanda si es negativo, transbordo si es cero. Buscas un flujo factible (conservación más capacidades) que minimice el costo total Σ c(x,y)·f(x,y). Se resuelve como un programa lineal, por ejemplo con Simplex.',
+    pasos: ['Modelar nodos (fuentes, transbordo, sumideros) y arcos.', 'Poner costo por unidad y capacidad (cotas) en cada arco.', 'Asignar b(x): oferta (> 0), demanda (< 0) o transbordo (= 0).', 'Exigir conservación del flujo en cada nodo y respetar capacidades.', 'Minimizar Σ c·f sobre todos los arcos.'],
+    formulas: ['min Σ c(x,y)·f(x,y)', 'flujo que sale − flujo que entra = b(x)', 'cota inferior ≤ f(x,y) ≤ capacidad'],
+    edd: [['Matriz de incidencia nodo-arco', 'Es la forma natural de escribir las ecuaciones de conservación (+1 sale, −1 entra).']],
+    comp: 'Polinomial (programación lineal / algoritmos de redes).',
+    usos: 'Problema de transporte (caso bipartito: almacenes → tiendas, costo 105 en el ejemplo de clase), emparejamiento estadístico de archivos (Ban y Turner, 1981), programación de producción de fibra, distritos de servicio de ambulancias, distribución de gas natural (GASNET3).',
+    truco: 'Lo que entra, sale. Si no sale, es porque alguien lo pidió (demanda).',
+    parcial: [['¿Qué cambia en el gas natural?', 'Hay pérdidas en las tuberías: el arco tiene una ganancia g, entra f y sale g·f. Ya no se conserva el flujo (flujos con ganancias).'], ['¿Qué es el problema de transporte?', 'Un caso especial de flujo de costo mínimo donde el grafo es bipartito: orígenes de un lado, destinos del otro.'], ['¿Se puede resolver flujo máximo con costo mínimo?', 'En las notas de clase la respuesta anotada es "No". Ojo: en la literatura sí existe el problema de "flujo máximo de costo mínimo" y se resuelve. Confírmalo con la profe antes del parcial.']] },
+  { id: 'borracho', cat: 'Flujo y otros', name: 'Caminata del borracho', short: 'En cada paso, un vecino al azar. Una cadena de Márkov.', special: 'walk',
+    idea: 'Un caminante (el "borracho") empieza en un vértice y, en cada paso de tiempo, se mueve a un vecino elegido completamente al azar, sin importar de dónde venía. Si N(v) son los vecinos de v, la probabilidad de ir a cada uno es 1/|N(v)|. Como el siguiente paso depende solo de dónde está ahora, es una cadena de Márkov.',
+    pasos: ['Elegir un vértice inicial v0.', 'En el paso t, estando en vt, elegir un vecino al azar con probabilidad 1/|N(vt)|.', 'Moverse y repetir.'],
+    edd: [['Lista de adyacencia', 'Para conocer rápido los vecinos del vértice actual.'], ['Contador de visitas', 'Para estimar con cuánta frecuencia se pasa por cada nodo.']],
+    comp: 'Cada paso es O(1) con lista de adyacencia.',
+    usos: 'Medir la probabilidad de llegar a un vértice (¿llega a su casa?), el tiempo medio de primera pasada (¿cuánto tarda?) y el tiempo medio de retorno. PageRank de Google se basa en una caminata aleatoria.',
+    truco: 'El borracho no tiene memoria: solo le importa dónde está parado.',
+    parcial: [['¿Qué es un estado absorbente?', 'Un estado del que no se sale: su lazo tiene probabilidad 1.']] },
+];
+
+/* ============ preguntas tipo parcial ============ */
+const TOPICS = { conceptos: 'Conceptos', repr: 'Representación', recorridos: 'Recorridos', caminos: 'Camino mínimo', arboles: 'Árboles cobertores', flujo: 'Flujo y complejidad' };
+const MCQ = [
+  { t: 'recorridos', q: '¿Qué estructura auxiliar usa BFS para manejar la frontera?', o: ['Una cola FIFO', 'Una pila LIFO', 'Un heap de mínimos', 'Una matriz de incidencia'], a: 0, e: 'BFS saca siempre al primero que entró, por eso avanza por niveles. DFS es el que usa pila.' },
+  { t: 'recorridos', q: 'DFS (búsqueda en profundidad) usa como estructura auxiliar principal…', o: ['Una cola', 'Una pila (o la recursión)', 'Una lista de lados ordenada', 'Un vector de pesos'], a: 1, e: 'La pila hace que lo último descubierto se explore primero: así baja hasta el fondo y luego retrocede (backtracking).' },
+  { t: 'recorridos', q: '¿Para qué sirve el vector de visitados en BFS y DFS?', o: ['Para guardar los pesos de las aristas', 'Para no procesar un nodo dos veces y no quedar atrapado en ciclos', 'Para ordenar los nodos alfabéticamente', 'Para calcular el grado de cada nodo'], a: 1, e: 'Sin él, en un grafo con ciclos el recorrido daría vueltas para siempre.' },
+  { t: 'recorridos', q: 'BFS encuentra el camino más corto…', o: ['En cualquier grafo ponderado', 'En número de aristas, en grafos no ponderados', 'Solo si no hay ciclos', 'Nunca, solo recorre'], a: 1, e: 'Explora por niveles, así que la primera vez que llega a un nodo lo hace con el mínimo de aristas. Con pesos distintos necesitas Dijkstra.' },
+  { t: 'recorridos', q: '¿Qué indica la potencia A^k de la matriz de adyacencia?', o: ['La distancia mínima entre nodos', 'El número de caminos de longitud exacta k entre cada par', 'Si el grafo es planar', 'El grado de cada vértice'], a: 1, e: 'Sumando I + A + A² + … + A^(n−1) (con OR) obtienes la alcanzabilidad entre todos los pares.' },
+  { t: 'recorridos', q: 'El algoritmo de Warshall calcula…', o: ['El árbol cobertor mínimo', 'La clausura transitiva: qué nodos alcanzan a cuáles', 'El flujo máximo', 'El grafo dual'], a: 1, e: 'R[i][j] = R[i][j] OR (R[i][k] AND R[k][j]). Es la versión booleana de Floyd-Warshall.' },
+  { t: 'caminos', q: '¿Por qué se descarta Dijkstra cuando hay pesos negativos?', o: ['Porque no acepta grafos dirigidos', 'Porque puede fijar una distancia como definitiva y luego un arco negativo la mejoraría: da un mínimo malo sin darse cuenta', 'Porque siempre entra en un ciclo infinito', 'Porque necesita una matriz de incidencia'], a: 1, e: 'Dijkstra no revisa nodos ya etiquetados. Con negativos, eso ya no es seguro y no detecta el error.' },
+  { t: 'caminos', q: 'Dijkstra es un algoritmo…', o: ['Voraz (greedy) de etiquetado permanente', 'De programación lineal', 'Heurístico, no siempre óptimo', 'De backtracking'], a: 0, e: 'En cada paso toma el nodo no etiquetado de menor distancia y su etiqueta queda permanente.' },
+  { t: 'caminos', q: 'En Dijkstra, ¿por qué el camino se reconstruye de atrás hacia adelante?', o: ['Porque el grafo es no dirigido', 'Porque solo se guarda el predecesor (prev) de cada nodo', 'Porque así lo pide el heap', 'Por convención, da igual'], a: 1, e: 'Desde el destino sigues prev hasta el origen y luego inviertes la lista (preconcatenación).' },
+  { t: 'caminos', q: '¿En qué caso Dijkstra no llega a visitar un nodo?', o: ['Cuando el nodo tiene grado par', 'Cuando ningún arco llega a ese nodo desde el origen', 'Cuando hay un empate de distancias', 'Cuando el nodo es una hoja'], a: 1, e: 'Si no es alcanzable desde el origen, su distancia se queda en ∞.' },
+  { t: 'caminos', q: 'En Bellman-Ford, si una iteración completa no produce ningún cambio…', o: ['Hay que completar igual las |V|−1 iteraciones', 'Se puede parar: ya no habrá cambios', 'Significa que hay un ciclo negativo', 'Hay que reiniciar con otro orden de arcos'], a: 1, e: 'Si no cambió nada, la siguiente ronda haría exactamente lo mismo. Si cambió algo, por mínimo que sea, se sigue.' },
+  { t: 'caminos', q: '¿Qué importancia tiene el orden en que Bellman-Ford recorre los arcos?', o: ['Cambia el resultado final', 'Cambia cuántas iteraciones hacen falta (puede tomar una más), no el resultado', 'Ninguna', 'Solo importa en grafos no dirigidos'], a: 1, e: 'Con un buen orden las mejoras se propagan en una sola pasada; con uno malo hacen falta más rondas.' },
+  { t: 'caminos', q: '¿Cómo detecta Bellman-Ford un ciclo negativo?', o: ['Si un nodo queda en ∞', 'Si después de |V|−1 rondas todavía se puede mejorar alguna distancia', 'Si hay más de un arco negativo', 'Si el grafo no es conexo'], a: 1, e: 'Un camino simple tiene como máximo |V|−1 arcos; si después de eso algo sigue bajando, hay un ciclo que resta cada vuelta.' },
+  { t: 'caminos', q: 'Un peso negativo en un problema de camino mínimo se puede interpretar como…', o: ['Un error de los datos', 'Una "recompensa": pasar por ahí acorta el camino', 'Un arco que no se puede usar', 'Una capacidad máxima'], a: 1, e: 'Por ejemplo, un descuento por usar una ruta o una ganancia en arbitraje de divisas.' },
+  { t: 'caminos', q: 'Floyd-Warshall tiene complejidad de tiempo…', o: ['O(V + E)', 'O(E log V)', 'O(V³)', 'O(V · E)'], a: 2, e: 'Tres ciclos anidados: k, i, j. El espacio es O(V²) por la matriz.' },
+  { t: 'caminos', q: 'Floyd-Warshall con pesos negativos…', o: ['No funciona nunca', 'Funciona si no hay ciclos negativos', 'Funciona siempre, incluso con ciclos negativos', 'Solo funciona en no dirigidos'], a: 1, e: 'Con un ciclo negativo no existe camino mínimo (siempre se puede dar otra vuelta).' },
+  { t: 'caminos', q: 'En Dantzig, ¿se pueden calcular EN PARALELO las distancias viejos↔nuevo y la mejora de los viejos entre sí haciendo escala en el nuevo?', o: ['Sí, son independientes', 'No: para usar el nuevo como escala primero necesitas sus distancias', 'Solo si el grafo es no dirigido', 'Solo con matriz de incidencia'], a: 1, e: 'El segundo cálculo depende del resultado del primero.' },
+  { t: 'caminos', q: 'Dantzig gasta mucha memoria. ¿Cómo se resuelve?', o: ['Usando una pila', 'Reciclando las matrices: se sobrescribe la anterior al calcular la siguiente', 'Usando lista de lados', 'No tiene solución'], a: 1, e: 'Las matrices D1 … Dn crecen y si guardas todas se acumulan.' },
+  { t: 'caminos', q: '¿Cuál de estos se beneficia MENOS del paralelismo?', o: ['Dantzig', 'Floyd-Warshall', 'Boruvka', 'Dijkstra'], a: 3, e: 'Dijkstra es greedy: cada paso necesita conocer el mínimo del paso anterior, así que las decisiones son secuenciales.' },
+  { t: 'arboles', q: '¿Cómo evita Kruskal formar ciclos?', o: ['Revisa que la arista tenga el peso más bajo', 'Solo acepta una arista si sus extremos están en componentes distintas', 'Usa una cola FIFO', 'Empieza siempre desde el nodo A'], a: 1, e: 'Con un vector de componentes (vector paralelo) o union-find: misma etiqueta = misma componente = ciclo.' },
+  { t: 'arboles', q: 'Prim se caracteriza por…', o: ['Ordenar todas las aristas primero', 'Hacer crecer un solo árbol desde un vértice, agregando la arista más barata que sale de él', 'Que todas las componentes elijan arista a la vez', 'Funcionar solo con pesos negativos'], a: 1, e: 'Como siempre une uno de adentro con uno de afuera, nunca forma ciclos.' },
+  { t: 'arboles', q: 'Boruvka se caracteriza por…', o: ['Crecer desde un solo vértice', 'Que cada componente elija su arista más barata hacia afuera, todas al mismo tiempo', 'Usar una pila', 'Necesitar pesos negativos'], a: 1, e: 'Por eso es el más paralelizable de los tres algoritmos de árbol cobertor.' },
+  { t: 'arboles', q: '¿Cómo obtienes el árbol cobertor MÁXIMO?', o: ['No se puede', 'Con el mismo algoritmo, ordenando de mayor a menor (o cambiando el signo de los pesos)', 'Con BFS', 'Con Bellman-Ford'], a: 1, e: 'Kruskal o Prim sirven igual, solo cambiando "más barata" por "más cara".' },
+  { t: 'arboles', q: 'El árbol cobertor mínimo es único cuando…', o: ['El grafo es completo', 'Todos los pesos de las aristas son distintos', 'Hay un solo vértice de grado impar', 'Se usa Prim'], a: 1, e: 'Con empates puede haber varios árboles con el mismo peso total. Aplica igual para el máximo.' },
+  { t: 'arboles', q: '¿Cómo calculas el peso del árbol cobertor sin mirar el dibujo?', o: ['Sumando toda la matriz de adyacencia del árbol', 'Sumando los valores no nulos y no infinitos del triángulo superior (o del inferior, no de ambos) de su matriz de adyacencia', 'Contando las aristas', 'Multiplicando la diagonal'], a: 1, e: 'La matriz de un grafo no dirigido es simétrica: si sumas todo, cuentas cada arista dos veces.' },
+  { t: 'arboles', q: 'Un árbol con n vértices tiene…', o: ['n aristas', 'n − 1 aristas y un único camino entre cada par de vértices', 'n(n−1)/2 aristas', 'Al menos un ciclo'], a: 1, e: 'Por eso un grafo conexo con N nodos necesita como mínimo N − 1 aristas.' },
+  { t: 'conceptos', q: '¿Cuál es la diferencia entre un lazo (loop) y un ciclo?', o: ['No hay diferencia', 'El lazo es UNA arista que empieza y termina en el mismo vértice; el ciclo es un camino de varias aristas que vuelve al inicio', 'El ciclo es una sola arista; el lazo son varias', 'El lazo solo existe en grafos no dirigidos'], a: 1, e: 'Ojo: en la clase 02 al lazo también lo llaman "ciclo (loop)".' },
+  { t: 'conceptos', q: 'Diferencia entre grafo dirigido y no dirigido:', o: ['El dirigido tiene pesos', 'En el dirigido las aristas son pares ordenados (origen, destino); en el no dirigido, pares sin orden', 'El no dirigido no puede tener ciclos', 'El dirigido siempre es conexo'], a: 1, e: 'En el dirigido (u,v) ≠ (v,u). Sus aristas se llaman arcos.' },
+  { t: 'conceptos', q: 'Un bosque es…', o: ['Un árbol con raíz', 'Un grafo sin ciclos: un conjunto de árboles', 'Un grafo completo', 'Un grafo con muchos ciclos'], a: 1, e: 'Puede tener varias componentes, cada una es un árbol.' },
+  { t: 'conceptos', q: 'El complemento de un grafo G…', o: ['Tiene los mismos vértices y solo las aristas que G NO tiene', 'Tiene un vértice por cada región de G', 'Es G con las flechas invertidas', 'Es el árbol cobertor de G'], a: 0, e: 'El de "un vértice por región" es el dual geométrico, otra cosa.' },
+  { t: 'conceptos', q: 'El grafo de Königsberg no tiene un paseo que cruce cada puente una sola vez porque…', o: ['Tiene 7 aristas', 'Sus 4 vértices tienen grado impar (5, 3, 3, 3)', 'No es conexo', 'Es un grafo dirigido'], a: 1, e: 'Para un camino euleriano hacen falta 0 o 2 vértices de grado impar.' },
+  { t: 'conceptos', q: 'Un grafo conexo tiene un camino euleriano (no circuito) si…', o: ['Todos sus vértices tienen grado par', 'Tiene exactamente 2 vértices de grado impar', 'Tiene exactamente 1 vértice de grado impar', 'Es completo'], a: 1, e: 'Empieza en uno de los impares y termina en el otro. Si todos son pares, hay circuito euleriano.' },
+  { t: 'conceptos', q: 'Un circuito hamiltoniano…', o: ['Pasa por cada ARISTA exactamente una vez', 'Pasa por cada VÉRTICE exactamente una vez y regresa al inicio', 'Es un ciclo de longitud 3', 'Es lo mismo que un árbol cobertor'], a: 1, e: 'Euleriano = aristas. Hamiltoniano = vértices.' },
+  { t: 'conceptos', q: 'Un grafo es planar si…', o: ['Todos sus vértices están en una línea', 'Se puede dibujar sin que se crucen sus aristas', 'No tiene ciclos', 'Es dirigido'], a: 1, e: 'Todo grafo planar tiene un dual geométrico G*.' },
+  { t: 'conceptos', q: 'Un vértice y una arista son incidentes cuando…', o: ['Tienen el mismo peso', 'El vértice es uno de los extremos de la arista', 'La arista es un lazo', 'Están en componentes distintas'], a: 1, e: 'Adyacencia, en cambio, es entre dos aristas (comparten vértice) o entre dos vértices (los une una arista).' },
+  { t: 'repr', q: '¿Cuáles son los 5 métodos para representar un grafo vistos en clase?', o: ['Matriz de adyacencia, matriz de incidencia, lista de aristas, lista de adyacencia y estrella', 'BFS, DFS, Dijkstra, Prim y Kruskal', 'Árbol, bosque, red, multigrafo y dual', 'Pila, cola, heap, árbol y hash'], a: 0, e: 'Forward star es la estrella para grafos dirigidos.' },
+  { t: 'repr', q: 'Ventaja principal de la matriz de adyacencia:', o: ['Usa poca memoria en grafos dispersos', 'Verificar si existe una arista entre dos nodos en O(1)', 'Es fácil agregar nodos', 'Listar vecinos en O(grado)'], a: 1, e: 'A cambio gasta O(n²) de memoria, aunque el grafo tenga pocas aristas.' },
+  { t: 'repr', q: 'En la matriz de incidencia de un grafo DIRIGIDO, la celda (nodo, arco) vale…', o: ['1 siempre que se toquen', '+1 si el arco sale del nodo, −1 si llega, 0 si no incide', 'El peso del arco', '−1 si sale, +1 si llega'], a: 1, e: 'En no dirigidos cada columna tiene exactamente dos unos.' },
+  { t: 'repr', q: '¿Qué es una matriz escasa?', o: ['Una matriz con pocas filas', 'Una matriz donde la gran mayoría de los valores son cero', 'Una matriz sin diagonal', 'Una matriz simétrica'], a: 1, e: 'La matriz de adyacencia de un grafo disperso es escasa: desperdicia memoria guardando ceros.' },
+  { t: 'repr', q: 'La lista de adyacencia ocupa memoria…', o: ['O(n²)', 'O(n + m): ideal para grafos dispersos', 'O(n · m)', 'O(1)'], a: 1, e: 'Guarda solo los vecinos reales de cada nodo. Su desventaja: verificar una arista específica cuesta O(grado).' },
+  { t: 'repr', q: 'La estructura estrella (forward star) consiste en…', o: ['Un arreglo de arcos ordenados por origen y un arreglo de punteros a dónde empieza cada nodo', 'Una matriz n × m', 'Una lista enlazada por nodo', 'Una tabla hash de aristas'], a: 0, e: 'Los vecinos quedan contiguos en memoria, pero agregar una arista obliga a reconstruir todo.' },
+  { t: 'repr', q: 'Desventaja común de las representaciones con arreglos (matrices, estrella):', o: ['No sirven para grafos dirigidos', 'No se actualizan fácilmente: agregar nodos o arcos obliga a redimensionar o reconstruir', 'No guardan pesos', 'Son más lentas que cualquier lista'], a: 1, e: 'Por eso la lista de adyacencia es mejor en grafos que cambian seguido.' },
+  { t: 'flujo', q: 'La ley de conservación del flujo dice que, en un nodo de transbordo…', o: ['El flujo es máximo', 'Flujo que sale − flujo que entra = 0', 'El flujo es igual a la capacidad', 'Solo entra flujo'], a: 1, e: 'En fuentes y sumideros la diferencia es la oferta o la demanda b(x).' },
+  { t: 'flujo', q: 'Un flujo es factible si…', o: ['Tiene costo cero', 'Cumple la conservación y respeta las capacidades de todos los arcos', 'Pasa por todos los nodos', 'Usa todos los arcos'], a: 1, e: 'El problema de costo mínimo busca, entre los factibles, el más barato.' },
+  { t: 'flujo', q: 'En flujo de costo mínimo, b(x) < 0 significa que x es…', o: ['Fuente (oferta)', 'Nodo de demanda', 'Nodo de transbordo', 'Un arco negativo'], a: 1, e: 'b > 0 oferta, b < 0 demanda (−b es lo que pide), b = 0 transbordo.' },
+  { t: 'flujo', q: 'El problema de transporte es un caso especial de flujo de costo mínimo donde el grafo es…', o: ['Completo', 'Bipartito', 'Planar', 'Un árbol'], a: 1, e: 'Orígenes (almacenes) de un lado y destinos (tiendas) del otro.' },
+  { t: 'flujo', q: 'Diferencia entre algoritmo exacto y heurístico:', o: ['El exacto siempre da el óptimo; el heurístico da una solución factible "bastante buena" en tiempo razonable', 'El heurístico siempre es más lento', 'El exacto solo sirve en grafos pequeños', 'No hay diferencia'], a: 0, e: 'Ej. exacto: Simplex. Heurísticos: A*, colonia de hormigas, recocido simulado.' },
+  { t: 'flujo', q: 'El problema del viajero (TSP) es…', o: ['Polinomial (P)', 'NP-completo', 'Se resuelve con BFS', 'Un problema de flujo'], a: 1, e: 'Por eso se usan heurísticas para resolverlo en tiempo razonable.' },
+  { t: 'flujo', q: 'La caminata del borracho es un ejemplo de…', o: ['Algoritmo voraz', 'Cadena de Márkov: el siguiente paso depende solo del vértice actual', 'Programación lineal', 'Búsqueda en profundidad'], a: 1, e: 'La probabilidad de ir a cada vecino de v es 1/|N(v)|.' },
+];
+
+const OPEN = [
+  { src: 'Parcial 28/10/2021 y 10/10/2024', t: 'recorridos', q: 'Describa en detalle la búsqueda en profundidad (DFS). ¿Qué estructuras de datos auxiliares requiere? ¿Para qué se usan?',
+    a: 'DFS recorre un grafo yendo lo más profundo posible por cada rama antes de retroceder. Se mete el nodo inicial en una pila. Mientras la pila no esté vacía, se saca el nodo del tope; si ya fue visitado se descarta; si no, se marca como visitado y se apilan sus vecinos no visitados. Cuando un nodo no tiene vecinos nuevos, el algoritmo retrocede solo (backtracking), porque el siguiente en la pila es una rama pendiente.',
+    k: ['Pila (LIFO): guarda la frontera y permite el backtracking', 'Vector de visitados: no repetir nodos ni ciclar', 'Opcional: vector de padres para el árbol DFS', 'Complejidad O(V + E)', 'Un uso: laberintos, ordenamiento topológico, detectar ciclos'] },
+  { src: 'Parcial diferido', t: 'recorridos', q: 'Describa BFS (Breadth First Search) y dé un ejemplo de para qué lo usaría.',
+    a: 'BFS explora el grafo por niveles. Se marca el nodo inicial y se mete en una cola. Mientras la cola no esté vacía, se saca el del frente y cada vecino no visitado se marca y se mete al final. Así se visitan primero todos los nodos a distancia 1, luego los de distancia 2, etc. Sirve para encontrar el camino con menos aristas: por ejemplo, los grados de separación entre dos personas en una red social, o una ruta GPS con menos intersecciones.',
+    k: ['Cola FIFO', 'Vector de visitados (arreglo booleano)', 'Recorre por niveles', 'Da el camino más corto en grafos no ponderados', 'Un ejemplo concreto de uso'] },
+  { src: 'Parcial 10/10/2024', t: 'repr', q: 'Describa en detalle dos formas de representación de grafos y resalte cuán útiles pueden ser en algoritmos de grafos.',
+    a: 'Matriz de adyacencia: matriz n×n donde a[i][j] = 1 (o el peso) si hay arista de i a j. Es simétrica si el grafo es no dirigido. Verificar una arista cuesta O(1), pero usa O(n²) memoria y listar vecinos cuesta O(n). Es útil en grafos densos y en algoritmos matriciales como Floyd-Warshall, Dantzig o las potencias A^k. Lista de adyacencia: para cada nodo, una lista enlazada con sus vecinos. Usa O(n + m) memoria, lista los vecinos en O(grado) y es fácil de modificar, pero encontrar una arista específica es más lento. Es la base de BFS, DFS y Dijkstra en grafos dispersos.',
+    k: ['Cómo se construye cada una', 'Memoria de cada una', 'Qué operación es rápida y cuál lenta', 'En qué algoritmo conviene cada una', 'Bonus: matriz escasa en grafos dispersos'] },
+  { src: 'Parcial 10/10/2024', t: 'caminos', q: '¿Qué significado tienen los costos negativos en la búsqueda de camino de costo mínimo? ¿Todos los algoritmos funcionan con costos negativos? Explique.',
+    a: 'Un costo negativo es como una recompensa: pasar por ese arco reduce el costo total (un descuento, una ganancia en arbitraje). No todos los algoritmos funcionan. Dijkstra no: etiqueta como permanente la menor distancia y nunca la revisa, así que un arco negativo descubierto después podría mejorarla y el algoritmo no se entera; da un mínimo incorrecto. Bellman-Ford sí funciona, porque relaja todos los arcos varias veces (hasta |V|−1 rondas) y además detecta ciclos negativos. Floyd-Warshall también acepta costos negativos mientras no haya ciclos negativos. Con un ciclo negativo no existe camino mínimo.',
+    k: ['Negativo = recompensa / acorta el camino', 'Dijkstra falla y por qué (etiqueta permanente)', 'Bellman-Ford sí, y detecta ciclos negativos', 'Floyd-Warshall sí, sin ciclos negativos', 'Con ciclo negativo no hay mínimo'] },
+  { src: 'Parcial 28/10/2021', t: 'caminos', q: '¿Cómo puede contribuir el paralelismo a agilizar algoritmos sobre grafos? Dé un ejemplo que se beneficie y otro que no, e indique por qué.',
+    a: 'El paralelismo divide el trabajo entre varios procesadores que ejecutan tareas al mismo tiempo, lo que reduce el tiempo de ejecución. Se beneficia Dantzig (o Floyd-Warshall): dentro de cada paso, los cálculos de filas y columnas son independientes y se pueden repartir; según Meyer (2018) reduce el tiempo hasta 70%. BFS y Boruvka también. No se beneficia mucho Dijkstra: es greedy, cada iteración necesita el nodo de menor distancia del paso anterior, así que sus decisiones son secuenciales.',
+    k: ['Qué es paralelismo: tareas simultáneas', 'Ejemplo que sí: Dantzig / Floyd / BFS por niveles / Boruvka', 'Por qué sí: cálculos independientes', 'Ejemplo que no: Dijkstra', 'Por qué no: greedy, decisiones secuenciales'] },
+  { src: 'Parcial diferido', t: 'conceptos', q: '¿En qué consistía el problema de los 7 puentes de Königsberg? Indique el grafo y dónde agregaría uno o más puentes para resolverlo.',
+    a: 'En Königsberg, el río Pregel rodeaba la isla Kneiphof y separaba la ciudad en 4 zonas unidas por 7 puentes. La pregunta era si se podía dar un paseo cruzando cada puente una sola vez. Euler (1736) lo modeló como un grafo: las 4 zonas son vértices y los 7 puentes son aristas (hay aristas múltiples). Los grados son 5 (la isla), 3, 3 y 3: los cuatro son impares, y un camino euleriano exige 0 o 2 vértices impares. Agregando 1 puente entre dos zonas de grado impar quedan solo 2 impares y ya existe un camino euleriano (empieza y termina en zonas distintas). Agregando 2 puentes, uno entre cada par de zonas impares, todos quedan pares y existe un circuito euleriano (se vuelve al inicio).',
+    k: ['4 zonas = vértices, 7 puentes = aristas', 'Grados 5, 3, 3, 3: todos impares', 'Regla: 0 o 2 impares para camino euleriano', '1 puente → camino; 2 puentes → circuito', 'Prueba el simulador en Inicio'] },
+  { src: 'Parcial 28/10/2021', t: 'arboles', q: 'Para construir el árbol cobertor de costo MÁXIMO, ¿qué algoritmo usaría y por qué? ¿Para qué querría alguien un árbol cobertor máximo?',
+    a: 'Usaría Kruskal ordenando las aristas de MAYOR a menor: es simple, se hace a mano fácil con la lista de aristas ordenada y para pasar de mínimo a máximo solo se invierte el orden. Cada arista se acepta si une componentes distintas y se descarta si forma ciclo, hasta tener n−1 aristas. También sirve Prim tomando siempre la arista más cara que sale del subárbol. Un árbol máximo sirve cuando los pesos representan algo que se quiere maximizar: capacidad o ancho de banda de enlaces, confiabilidad de una red, ganancia de cada conexión.',
+    k: ['Nombre del algoritmo', 'Cómo se adapta a máximo (orden inverso o pesos con signo cambiado)', 'Cómo evita ciclos', 'Termina con n−1 aristas', 'Justificación de la elección', 'Una aplicación del máximo'] },
+  { src: 'Notas de clase', t: 'arboles', q: '¿Cómo se evita formar un ciclo en un algoritmo de árbol cobertor? Mencione dos aplicaciones de los vectores paralelos.',
+    a: 'En Kruskal y Boruvka, cada nodo lleva una etiqueta de componente en un vector paralelo. Antes de agregar una arista se comparan las etiquetas de sus extremos: si son iguales, ya están conectados y la arista formaría un ciclo; si son distintas, se agrega y se re-etiqueta una de las componentes. En Prim no hace falta, porque siempre se une un nodo de dentro del árbol con uno de fuera. Dos aplicaciones de los vectores paralelos: 1) el vector de componentes para detectar ciclos; 2) los vectores de costo mínimo de conexión y nodo más cercano, que en Prim guardan para cada nodo de afuera cuánto cuesta unirlo al árbol y a quién.',
+    k: ['Vector de componentes / union-find', 'Misma etiqueta = ciclo', 'Prim no lo necesita (adentro–afuera)', 'Aplicación 1: detectar ciclos', 'Aplicación 2: costo mínimo / nodo más cercano'] },
+  { src: 'Notas de clase', t: 'arboles', q: 'Ventajas y desventajas de usar Kruskal.',
+    a: 'Ventajas: es simple de entender e implementar; funciona muy bien en grafos dispersos; trabaja directo sobre la lista de aristas; para el árbol máximo basta invertir el orden. Desventajas: hay que ordenar todas las aristas primero (O(E log E)); en grafos densos es más lento que Prim; necesita una estructura adicional (vector de componentes o union-find) para detectar ciclos.',
+    k: ['Simple', 'Bueno en grafos dispersos', 'Requiere ordenar todas las aristas', 'Necesita detectar ciclos', 'En densos, Prim es mejor'] },
+  { src: 'Notas de clase', t: 'caminos', q: 'Explique Bellman-Ford. ¿Qué importancia tiene el orden en que recorre los arcos?',
+    a: 'Bellman-Ford calcula caminos mínimos desde un origen y acepta arcos negativos. Empieza con d(origen) = 0 y el resto en ∞. En cada ronda revisa todos los arcos (u, v): si d(u) + w < d(v), actualiza d(v). Hace como máximo |V|−1 rondas, porque un camino simple tiene como mucho |V|−1 arcos, y puede parar antes si una ronda no cambia nada. Si después de |V|−1 rondas algo todavía mejora, hay un ciclo negativo. El orden de los arcos no cambia el resultado, pero sí cuántas rondas se necesitan: con un mal orden puede tomar una iteración más.',
+    k: ['Acepta arcos negativos', 'Relaja todos los arcos por ronda', 'Máximo |V|−1 rondas; para si no hay cambios', 'Detecta ciclos negativos', 'El orden afecta el número de rondas, no el resultado'] },
+  { src: 'Notas de clase', t: 'caminos', q: 'Explique el método de Dantzig. ¿Gasta mucha memoria? ¿Cómo se puede resolver?',
+    a: 'Dantzig calcula los caminos mínimos entre todos los pares construyendo matrices cada vez más grandes: D1, D2, …, Dn. Al agregar el nodo k, primero calcula las distancias del nodo nuevo a los anteriores y de los anteriores al nuevo usando la matriz previa; después revisa si los nodos viejos mejoran entre sí haciendo escala en el nuevo. Gasta mucha memoria porque las matrices crecen y se van guardando. Se resuelve reciclando matrices: sobrescribiendo la anterior al construir la siguiente. Se beneficia del paralelismo, pero el segundo cálculo no se puede hacer en paralelo con el primero, porque depende de él.',
+    k: ['Matrices crecientes D1 … Dn', 'Paso 1: distancias viejos ↔ nuevo', 'Paso 2: viejos entre sí con escala en el nuevo', 'Memoria: sí, se resuelve reciclando matrices', 'Paso 2 depende del paso 1'] },
+  { src: 'Parcial 10/10/2024', t: 'conceptos', q: 'Defina: grafo conexo, complemento de un grafo, árbol y circuito hamiltoniano.',
+    a: 'Grafo conexo: existe un camino entre cada par de vértices. Complemento de un grafo: grafo con los mismos vértices cuyas aristas son exactamente las que el original no tiene. Árbol: grafo conexo y sin ciclos; con n vértices tiene n−1 aristas y hay un único camino entre cada par. Circuito hamiltoniano: recorrido que pasa por cada vértice exactamente una vez y regresa al vértice inicial.',
+    k: ['Conexo: camino entre todo par', 'Complemento: mismos vértices, aristas faltantes', 'Árbol: conexo + sin ciclos', 'Hamiltoniano: cada VÉRTICE una vez y regresa'] },
+  { src: 'Parcial 28/10/2021', t: 'conceptos', q: 'Defina: árbol, complemento de un grafo, matriz de incidencia y camino euleriano.',
+    a: 'Árbol: grafo conexo y sin ciclos. Complemento: mismos vértices, aristas que no están en el original. Matriz de incidencia: matriz con una fila por nodo y una columna por arista; en no dirigidos vale 1 si el nodo es extremo de la arista (cada columna tiene dos unos); en dirigidos vale +1 si el arco sale del nodo, −1 si llega y 0 si no incide. Camino euleriano: camino que recorre cada arista exactamente una vez; existe en un grafo conexo con 0 o 2 vértices de grado impar.',
+    k: ['Árbol: conexo sin ciclos', 'Complemento', 'Incidencia: filas nodos, columnas aristas, ±1 en dirigidos', 'Euleriano: cada ARISTA una vez; 0 o 2 impares'] },
+  { src: 'Parcial diferido', t: 'conceptos', q: 'Defina: grafo conexo, complemento, árbol cobertor, matriz de incidencia y circuito simple.',
+    a: 'Grafo conexo: hay un camino entre cada par de vértices. Complemento: mismos vértices con las aristas que faltan en el original. Árbol cobertor: subgrafo que es árbol y contiene todos los vértices del grafo original. Matriz de incidencia: filas = nodos, columnas = aristas; 1 si incide (±1 en dirigidos). Circuito simple: ciclo que no repite vértices; ningún vértice incide en más de dos de sus aristas. No confundir con grafo simple (sin lazos ni aristas múltiples).',
+    k: ['Árbol cobertor: todos los vértices, sin ciclos', 'Circuito simple ≠ grafo simple', 'Las demás definiciones'] },
+  { src: 'Notas de clase', t: 'flujo', q: 'Plantee el problema de flujo de costo mínimo y dé un ejemplo.',
+    a: 'Dada una red dirigida donde cada arco (x, y) tiene un costo por unidad c(x, y) y cotas inferior y superior, y cada nodo tiene b(x) (oferta si es positivo, demanda si es negativo, transbordo si es cero), se busca un flujo factible que cumpla la conservación en todos los nodos y las capacidades, y que minimice Σ c(x,y)·f(x,y). Ejemplo: el problema de transporte, con almacenes que envían un producto a puntos de venta; el grafo es bipartito y en el ejemplo de clase el costo mínimo fue 105.',
+    k: ['Costo por unidad y capacidades', 'b(x): oferta, demanda, transbordo', 'Conservación del flujo', 'Minimizar Σ c·f', 'Ejemplo: transporte / distribución'] },
+];
+
+/* ============ pares para relacionar (algoritmos) ============ */
+const ALG_PAIRS = [
+  ['BFS', 'Cola FIFO, recorre por niveles'], ['DFS', 'Pila LIFO, backtracking'], ['Dijkstra', 'Greedy, etiqueta permanente, sin pesos negativos'],
+  ['Bellman-Ford', 'Acepta negativos, relaja todos los arcos hasta |V|−1 veces'], ['Floyd-Warshall', 'Todos los pares con escala en k, O(V³)'],
+  ['Dantzig', 'Matrices que crecen D1, D2, …, Dn'], ['Warshall', 'Clausura transitiva con AND y OR'], ['Kruskal', 'Ordena aristas y descarta las que forman ciclo'],
+  ['Prim', 'Un solo árbol que crece desde un vértice'], ['Boruvka', 'Cada componente elige su arista más barata a la vez'],
+  ['Caminata del borracho', 'Cadena de Márkov, vecino al azar'], ['Flujo de costo mínimo', 'Minimiza Σ c·f con conservación y capacidades'],
+];
+
+/* ============ estado y vistas ============ */
+const app = $('#app');
+let cleanup = null;
+function stats() {
+  const best = store.get('quizBest', null), open = store.get('open', {}), mt = store.get('matchBest', null);
+  const mastered = Object.values(open).filter(v => v === 'ok').length;
+  return { best, mastered, mt, ej: Object.keys(store.get('ej', {})).length };
+}
+
+function viewInicio() {
+  const s = stats();
+  app.innerHTML = `
+  <section class="stack-lg">
+    <div class="hero">
+      <div class="eyebrow">Modelación de Sistemas de Redes · Parcial 1</div>
+      <h1>Grafos al Parcial</h1>
+      <p class="sub">Definiciones, algoritmos paso a paso y preguntas sacadas de los parciales de 2021, 2024 y el diferido. Todo teórico, todo para practicar.</p>
+      <div class="stats">
+        <div class="stat"><div class="n">${s.best ? s.best + '%' : '–'}</div><div class="l">mejor quiz</div></div>
+        <div class="stat"><div class="n">${s.mastered}/${OPEN.length}</div><div class="l">preguntas de desarrollo dominadas</div></div>
+        <div class="stat"><div class="n">${s.ej}/${totalEx()}</div><div class="l">ejercicios resueltos</div></div>
+      </div>
+    </div>
+
+    <div class="go-grid">
+      <a class="go" href="#algoritmos"><span class="line" style="background:var(--tree)"></span><span class="t">Algoritmos</span><span class="d">${ALGS.length} temas con corrida animada, ejemplo resuelto y ${totalEx()} ejercicios para hacer de cero.</span></a>
+      <a class="go" href="#quiz"><span class="line" style="background:var(--accent)"></span><span class="t">Quiz tipo parcial</span><span class="d">${MCQ.length} preguntas de selección y ${OPEN.length} de desarrollo.</span></a>
+      <a class="go" href="#relacionar"><span class="line" style="background:#7A4FC4"></span><span class="t">Relacionar</span><span class="d">Une términos con definiciones contra reloj.</span></a>
+      <a class="go" href="#glosario"><span class="line" style="background:var(--front)"></span><span class="t">Glosario</span><span class="d">${GLOS.length} definiciones con buscador.</span></a>
+    </div>
+
+    <div class="stack">
+      <h2>Lo que más se repite</h2>
+      <p class="muted">Contado en los 3 parciales que subiste (2021, 2024 y el diferido) más las preguntas anotadas en clase.</p>
+      <div class="card freq">
+        ${[['Definir 4 o 5 conceptos (1 pt c/u)', 3], ['Describir DFS o BFS y sus estructuras', 3], ['Dijkstra: camino de costo mínimo', 3], ['Paralelismo o costos negativos', 2], ['Representación de grafos', 1], ['Árbol cobertor máximo', 1], ['Puentes de Königsberg', 1]].map(([t, n]) => `<div class="it"><span>${t}</span><span class="mono">${n}/3</span><div class="bar"><i style="width:${n / 3 * 100}%"></i></div></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="stack kb">
+      <h2>Prueba: los puentes de Königsberg</h2>
+      <p class="muted">4 zonas (vértices) y 7 puentes (aristas). Agrega puentes y mira cómo cambian los grados.</p>
+      <div class="card stack">
+        <div id="kbsvg"></div>
+        <p class="msg" id="kbmsg"></p>
+        <div class="row"><button class="btn accent" id="kbadd">Agregar puente</button><button class="btn ghost" id="kbreset">Reiniciar</button></div>
+      </div>
+    </div>
+
+    <div class="stack">
+      <h2>Ojo con tus apuntes</h2>
+      <p class="muted">Detalles de las notas y de un examen resuelto que conviene corregir antes del parcial.</p>
+      ${GLOS.filter(x => x.o).map(x => `<div class="ojo"><b>${x.t}</b>${x.o}</div>`).join('')}
+      <div class="ojo"><b>Königsberg con un solo puente</b>Una respuesta del diferido dice que con un puente más ya existe un "ciclo euleriano". Con 1 puente quedan 2 vértices impares: hay camino euleriano, pero no regresa al inicio. Para el circuito hacen falta 2 puentes.</div>
+      <div class="ojo"><b>Flujo máximo con costo mínimo</b>En las notas aparece que "no se puede". En la teoría general sí existe ese problema y tiene solución. Pregúntale a la profe qué respuesta espera.</div>
+    </div>
+  </section>`;
+  // Königsberg
+  const P = { A: [190, 120], B: [190, 30], C: [190, 215], D: [330, 120] };
+  const base = [['A','B',-28],['A','B',28],['A','C',-28],['A','C',28],['A','D',0],['B','D',0],['C','D',0]];
+  const extra = [['B','C',150],['A','D',-36]];
+  let added = 0;
+  const draw = () => {
+    const E = base.concat(extra.slice(0, added)), deg = { A: 0, B: 0, C: 0, D: 0 };
+    let s = '<rect x="0" y="0" width="380" height="245" fill="none"/>';
+    s += '<path d="M0 78 C 90 70, 120 70, 150 82 S 260 70, 380 84" stroke="var(--tree-soft)" stroke-width="26" fill="none"/><path d="M0 165 C 90 172, 120 172, 150 160 S 260 172, 380 160" stroke="var(--tree-soft)" stroke-width="26" fill="none"/>';
+    E.forEach(([u, v, bend], i) => {
+      deg[u]++; deg[v]++;
+      const [x1, y1] = P[u], [x2, y2] = P[v], mx = (x1 + x2) / 2, my = (y1 + y2) / 2, dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy);
+      const cx = mx - dy / L * bend, cy = my + dx / L * bend, isNew = i >= base.length;
+      if (u === 'B' && v === 'C') s += `<path d="M${x1} ${y1} C 40 40, 40 205, ${x2} ${y2}" class="e ${isNew ? 'path' : ''}" />`;
+      else s += `<path d="M${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}" class="e ${isNew ? 'path' : ''}" style="${isNew ? '' : 'stroke:var(--muted)'}"/>`;
+    });
+    Object.entries(P).forEach(([n, [x, y]]) => {
+      const odd = deg[n] % 2;
+      s += `<g class="n ${odd ? 'cur' : 'done'}"><circle cx="${x}" cy="${y}" r="17"/><text x="${x}" y="${y + 1}">${n}</text></g><text class="nl" x="${x + 30}" y="${y + 5}">g=${deg[n]}</text>`;
+    });
+    $('#kbsvg').innerHTML = `<svg viewBox="0 0 380 245" role="img" aria-label="Grafo de Königsberg">${s}</svg>`;
+    const odd = Object.values(deg).filter(d => d % 2).length;
+    $('#kbmsg').innerHTML = odd === 4 ? '4 vértices de grado impar (en naranja): no hay camino euleriano. Euler tenía razón.' : odd === 2 ? 'Quedan 2 impares: ya existe un <span style="color:var(--accent)">camino euleriano</span>, empezando en uno impar y terminando en el otro. Pero no vuelve al inicio.' : 'Todos los grados son pares: existe un <span style="color:var(--tree)">circuito euleriano</span>. Cruzas cada puente una vez y vuelves a casa.';
+    $('#kbadd').disabled = added >= extra.length;
+  };
+  $('#kbadd').onclick = () => { added++; draw(); };
+  $('#kbreset').onclick = () => { added = 0; draw(); };
+  draw();
+}
+
+function viewGlosario() {
+  let cat = 'Todos', term = '';
+  app.innerHTML = `<section class="stack">
+    <div class="eyebrow">Glosario</div><h2>Definiciones</h2>
+    <input class="search" id="gq" type="search" placeholder="Buscar: árbol, incidencia, flujo…" autocomplete="off">
+    <div class="chips" id="gc">${['Todos'].concat(CATS).map(c => `<button class="chip" data-c="${c}" aria-pressed="${c === 'Todos'}">${c}</button>`).join('')}</div>
+    <div class="stack" id="gl"></div></section>`;
+  const render = () => {
+    const t = term.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const list = GLOS.filter(x => (cat === 'Todos' || x.c === cat) && (!t || (x.t + ' ' + x.d).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').includes(t)));
+    $('#gl').innerHTML = list.length ? list.map(x => `<div class="gl-item"><span class="tag ${x.o ? 'orange' : ''}">${x.c}</span><span class="term">${x.t}</span><span>${x.d}</span>${x.o ? `<div class="ojo"><b>Ojo</b>${x.o}</div>` : ''}</div>`).join('') : '<p class="muted">No hay definiciones con esa palabra. Prueba con otra o cambia la categoría.</p>';
+  };
+  $('#gq').oninput = e => { term = e.target.value; render(); };
+  $$('#gc .chip').forEach(b => b.onclick = () => { cat = b.dataset.c; $$('#gc .chip').forEach(x => x.setAttribute('aria-pressed', x === b)); render(); });
+  render();
+}
+
+function viewAlgoritmos() {
+  const cats = Object.keys(LINES);
+  app.innerHTML = `<section class="stack-lg">
+    <div class="stack"><div class="eyebrow">Algoritmos</div><h2>Cada línea, una familia</h2><p class="muted">Toca un algoritmo para ver la idea en palabras sencillas, sus pasos, sus estructuras de datos, lo que preguntan en el parcial y, en la mayoría, una corrida animada.</p></div>
+    ${cats.map(c => `<div class="alg-group" style="--c:${LINES[c]}"><div class="line-head"><h3>${c}</h3><span class="bar"></span></div>
+      ${ALGS.filter(a => a.cat === c).map(a => `<a class="alg-item" href="#alg-${a.id}"><span class="stn"></span><span><span class="nm">${a.name}</span><br><span class="ds">${a.short}</span></span><span class="ar">›</span></a>`).join('')}</div>`).join('')}
+  </section>`;
+}
+
+function player(container, makeSteps, g, opts = {}) {
+  const dopt = { hideW: !!opts.hideW };
+  let steps = makeSteps(opts.mode), i = 0, timer = null;
+  container.innerHTML = `<div class="player">
+    ${opts.modes ? `<div class="row"><span class="plabel">Árbol:</span><div class="toggle" role="group"><button data-m="min" aria-pressed="true">Mínimo</button><button data-m="max" aria-pressed="false">Máximo</button></div></div>` : ''}
+    <div class="gwrap"><div class="gsvg"></div>${LEGEND}</div>
+    <div class="prog"><i></i></div>
+    <div class="ptext" aria-live="polite"></div>
+    <div class="pctl">
+      <button class="btn ghost b-reset" aria-label="Reiniciar">⟲</button>
+      <button class="btn ghost b-prev">‹ Atrás</button>
+      <button class="btn primary b-next">Siguiente ›</button>
+      <button class="btn ghost b-play">Auto</button>
+    </div>
+    <div class="pcount"></div>
+    <div class="panel"></div>
+  </div>`;
+  const render = () => {
+    const s = steps[i];
+    $('.gsvg', container).innerHTML = drawGraph(g, s, dopt);
+    $('.ptext', container).innerHTML = s.text;
+    $('.panel', container).innerHTML = s.panel || '';
+    $('.pcount', container).textContent = `Paso ${i + 1} de ${steps.length}`;
+    $('.prog i', container).style.width = ((i + 1) / steps.length * 100) + '%';
+    $('.b-prev', container).disabled = i === 0;
+    $('.b-next', container).disabled = i === steps.length - 1;
+  };
+  const stop = () => { clearInterval(timer); timer = null; $('.b-play', container).textContent = 'Auto'; };
+  $('.b-next', container).onclick = () => { if (i < steps.length - 1) { i++; render(); } };
+  $('.b-prev', container).onclick = () => { stop(); if (i > 0) { i--; render(); } };
+  $('.b-reset', container).onclick = () => { stop(); i = 0; render(); };
+  $('.b-play', container).onclick = () => {
+    if (timer) return stop();
+    if (i === steps.length - 1) i = 0;
+    $('.b-play', container).textContent = 'Pausa';
+    timer = setInterval(() => { if (i < steps.length - 1) { i++; render(); } else stop(); }, 1700);
+  };
+  $$('.toggle button', container).forEach(b => b.onclick = () => {
+    stop(); $$('.toggle button', container).forEach(x => x.setAttribute('aria-pressed', x === b));
+    steps = makeSteps(b.dataset.m); i = 0; render();
+  });
+  render();
+  return stop;
+}
+
+function reprWidget(el) {
+  const N = [1, 2, 3, 4], E = [[1,2],[2,1],[2,3],[2,4],[3,1],[4,3]];
+  const g = { directed: true, pos: { 1: [50, 125], 2: [180, 40], 3: [180, 210], 4: [320, 125] }, edges: E.map(([u, v], i) => [String(u), String(v), 'e' + (i + 1)]) };
+  const M = {
+    'Matriz de adyacencia': { html: () => `<div class="tscroll"><table class="t"><tr><th></th>${N.map(n => `<th>${n}</th>`).join('')}</tr>${N.map(i => `<tr><th>${i}</th>${N.map(j => `<td class="${E.some(([u, v]) => u === i && v === j) ? 'chg' : ''}">${E.some(([u, v]) => u === i && v === j) ? 1 : 0}</td>`).join('')}</tr>`).join('')}</table></div><p class="muted">a[i][j] = 1 si hay arco de i a j. En no dirigidos es simétrica. Un dirigido con 6 arcos tiene exactamente 6 unos.</p>`,
+      pro: ['Verificar si existe un arco: O(1)', 'Ideal para grafos densos o completos', 'Permite operar con matrices (A^k, Floyd, Dantzig)'], con: ['Memoria O(n²) aunque haya pocas aristas (matriz escasa)', 'Listar vecinos cuesta O(n)', 'Agregar nodos obliga a redimensionar'], mem: 'O(n²) · no dirigido: m(m−1)/2' },
+    'Matriz de incidencia': { html: () => `<div class="tscroll"><table class="t"><tr><th></th>${E.map((e, k) => `<th>e${k + 1}<br>${e[0]}→${e[1]}</th>`).join('')}</tr>${N.map(i => `<tr><th>${i}</th>${E.map(([u, v]) => { const x = u === i ? '+1' : v === i ? '−1' : '0'; return `<td class="${x !== '0' ? 'chg' : ''}">${x}</td>`; }).join('')}</tr>`).join('')}</table></div><p class="muted">Filas = nodos, columnas = arcos. +1 donde sale (cola), −1 donde llega (cabeza). En no dirigidos: 1 y cada columna tiene dos unos.</p>`,
+      pro: ['Guarda la dirección (y pesos si se extiende)', 'Natural para redes y flujos (conservación)', 'Útil en teoría y álgebra lineal'], con: ['Verificar adyacencia entre dos nodos: O(m)', 'Poco intuitiva, difícil de depurar', 'Recorrer vecinos es lento'], mem: 'O(n × m)' },
+    'Lista de aristas': { html: () => `<div class="tscroll"><table class="t"><tr><th>arco</th><th>inicio</th><th>fin</th></tr>${E.map(([u, v], k) => `<tr><td>e${k + 1}</td><td>${u}</td><td>${v}</td></tr>`).join('')}</table></div><p class="muted">Una fila por arco con su inicio y su fin. En dirigidos el orden importa; en no dirigidos no.</p>`,
+      pro: ['Mínima memoria: 2m', 'Simple y fácil de modificar', 'Perfecta para procesar todas las aristas (Kruskal, Bellman-Ford)'], con: ['Verificar u→v cuesta O(m)', 'Sacar los vecinos de un nodo cuesta O(m)'], mem: 'O(m), exactamente 2m' },
+    'Lista de adyacencia': { html: () => `<div class="lst">${N.map(i => `<div><b>${i}</b> → ${E.filter(([u]) => u === i).map(([, v]) => `[${v}]`).join(' → ') || '∅'}</div>`).join('')}</div><p class="muted">Cada nodo apunta a una lista enlazada con los nodos a los que se llega desde él.</p>`,
+      pro: ['Memoria óptima en grafos dispersos', 'Vecinos de un nodo en O(grado)', 'Fácil de modificar (redes que cambian)'], con: ['Encontrar un arco específico es más lento', 'Gasta memoria extra en punteros'], mem: 'O(n + m)' },
+    'Estrella (forward star)': { html: () => { const ptr = [1, 2, 5, 6, 7], arcs = [2, 1, 3, 4, 1, 3]; return `<div class="plabel">Punteros (dónde empiezan los arcos de cada nodo)</div><div class="arr">${ptr.map((p, k) => `<span class="h"><span class="idx">${k < 4 ? 'nodo ' + (k + 1) : 'fin'}</span>${p}</span>`).join('')}</div><div class="plabel" style="margin-top:8px">Arcos (destinos ordenados por origen)</div><div class="arr">${arcs.map((a, k) => `<span><span class="idx">${k + 1}</span>${a}</span>`).join('')}</div><p class="muted">Los vecinos del nodo i van de Punteros[i] a Punteros[i+1] − 1. Ej.: el nodo 2 va de la posición 2 a la 4: {1, 3, 4}.</p>`; },
+      pro: ['Vecinos contiguos en memoria: recorrido muy rápido', 'Memoria O(n + m) sin punteros enlazados', 'Ideal en grafos estáticos grandes (GIS, rutas)'], con: ['Agregar un arco obliga a reconstruirla', 'Más compleja de implementar'], mem: 'O(n + m)' },
+  };
+  let cur = Object.keys(M)[0];
+  el.innerHTML = `<div class="gwrap">${drawGraph(g)}</div><p class="muted">Grafo dirigido de la clase 02: X = {1,2,3,4}, E = {(1,2),(2,1),(2,3),(2,4),(3,1),(4,3)}.</p><div class="repr-tabs">${Object.keys(M).map(k => `<button class="chip" data-k="${k}" aria-pressed="${k === cur}">${k}</button>`).join('')}</div><div class="card stack" id="rbody"></div>
+  <div class="sec"><h3>Resumen comparativo</h3><div class="tscroll"><table class="t"><tr><th>Representación</th><th>Memoria</th><th>¿Existe arco?</th><th>Vecinos</th><th>Flexible</th></tr>
+  <tr><td>Matriz adyacencia</td><td>O(n²)</td><td>O(1)</td><td>O(n)</td><td>Baja</td></tr><tr><td>Matriz incidencia</td><td>O(n·m)</td><td>O(m)</td><td>O(m)</td><td>Baja</td></tr><tr><td>Lista de aristas</td><td>O(m)</td><td>O(m)</td><td>O(m)</td><td>Alta</td></tr><tr><td>Lista adyacencia</td><td>O(n+m)</td><td>O(grado)</td><td>O(grado)</td><td>Alta</td></tr><tr><td>Estrella</td><td>O(n+m)</td><td>O(log grado)</td><td>O(grado)</td><td>Baja</td></tr></table></div>
+  <div class="truco"><span>Truco</span>Pequeño o denso: matriz. Disperso o cambiante: lista de adyacencia. Procesar todas las aristas: lista de aristas. Estático y veloz: estrella. Flujos: incidencia.</div></div>`;
+  const render = () => { const m = M[cur]; $('#rbody', el).innerHTML = `<div class="row" style="justify-content:space-between"><h3>${cur}</h3><span class="tag">${m.mem}</span></div>${m.html()}<div class="pc"><div class="pro"><b>Ventajas</b>${m.pro.map(x => `<div>· ${x}</div>`).join('')}</div><div class="con"><b>Desventajas</b>${m.con.map(x => `<div>· ${x}</div>`).join('')}</div></div>`; };
+  $$('.repr-tabs .chip', el).forEach(b => b.onclick = () => { cur = b.dataset.k; $$('.repr-tabs .chip', el).forEach(x => x.setAttribute('aria-pressed', x === b)); render(); });
+  render();
+}
+
+function walkWidget(el) {
+  const g = G_MAIN, A = adjOf(g), N = Object.keys(g.pos);
+  let at = 'A', cnt = {}, steps = 0; N.forEach(n => cnt[n] = 0); cnt.A = 1;
+  el.innerHTML = `<div class="gwrap"><div class="wsvg"></div></div><p class="ptext" id="wmsg"></p><div class="row"><button class="btn primary" id="w1">Dar 1 paso</button><button class="btn ghost" id="w100">Dar 100 pasos</button><button class="btn ghost" id="w0">Reiniciar</button></div>`;
+  const render = (msg) => {
+    const labels = {}; N.forEach(n => labels[n] = steps ? Math.round(cnt[n] / (steps + 1) * 100) + '%' : '');
+    $('.wsvg', el).innerHTML = drawGraph(g, { nodes: { [at]: 'cur' }, labels });
+    $('#wmsg', el).innerHTML = msg || 'El borracho está en <b>A</b>. Cada paso elige un vecino al azar, sin importar de dónde viene. Los porcentajes muestran cuánto tiempo pasa en cada nodo.';
+  };
+  const step = () => { const nb = A[at]; const nx = nb[Math.floor(Math.random() * nb.length)][0]; const from = at; at = nx; cnt[at]++; steps++; return [from, nb.length]; };
+  $('#w1', el).onclick = () => { const [from, k] = step(); render(`Estaba en <b>${from}</b>, que tiene ${k} vecinos: cada uno con probabilidad 1/${k}. Fue a <b>${at}</b>. Pasos: ${steps}.`); };
+  $('#w100', el).onclick = () => { for (let i = 0; i < 100; i++) step(); render(`Van ${steps} pasos. Ahora está en <b>${at}</b>. Fíjate que los nodos con más vecinos (B y E) reciben más visitas: en la larga, la frecuencia es proporcional al grado.`); };
+  $('#w0', el).onclick = () => { at = 'A'; steps = 0; N.forEach(n => cnt[n] = 0); cnt.A = 1; render(); };
+  render();
+}
+
+function viewAlg(id) {
+  const a = ALGS.find(x => x.id === id);
+  if (!a) { location.hash = '#algoritmos'; return; }
+  const col = LINES[a.cat];
+  app.innerHTML = `<section class="stack-lg" style="--c:${col}">
+    <div class="stack"><button class="back" onclick="location.hash='#algoritmos'">‹ Todos los algoritmos</button>
+      <div class="line-head"><span class="eyebrow">${a.cat}</span><span class="bar"></span></div>
+      <h2>${a.name}</h2><p class="muted">${a.short}</p></div>
+    ${a.special === 'repr' ? '<div id="repr" class="stack"></div>' : ''}
+    ${a.idea ? `<div class="sec"><h3>En buen castellano</h3><p>${a.idea}</p></div>` : ''}
+    ${a.anim ? `<div class="sec"><h3>Míralo correr</h3><div id="pl"></div></div>` : ''}
+    ${a.special === 'walk' ? `<div class="sec"><h3>Suelta al borracho</h3><div id="walk"></div></div>` : ''}
+    ${a.pasos ? `<div class="sec"><h3>Los pasos</h3><ol class="steps">${a.pasos.map(p => `<li><span>${p}</span></li>`).join('')}</ol></div>` : ''}
+    ${a.formulas ? `<div class="sec"><h3>Fórmulas</h3>${a.formulas.map(f => `<div class="formula">${f}</div>`).join('')}</div>` : ''}
+    ${a.edd ? `<div class="sec"><h3>Estructuras de datos</h3><dl class="kv">${a.edd.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl></div>` : ''}
+    ${a.comp ? `<div class="sec"><h3>Complejidad</h3><p class="mono">${a.comp}</p></div>` : ''}
+    ${a.pros ? `<div class="sec"><h3>Ventajas y desventajas</h3><div class="pc"><div class="pro"><b>Ventajas</b>${a.pros.map(x => `<div>· ${x}</div>`).join('')}</div><div class="con"><b>Desventajas</b>${a.cons.map(x => `<div>· ${x}</div>`).join('')}</div></div></div>` : ''}
+    ${a.usos ? `<div class="sec"><h3>¿Para qué sirve?</h3><p>${a.usos}</p></div>` : ''}
+    ${a.truco ? `<div class="truco"><span>Para recordarlo</span>${a.truco}</div>` : ''}
+    ${a.parcial ? `<div class="sec card"><h3><span class="tag orange">Parcial</span> Lo que preguntan</h3>${a.parcial.map(([q, r]) => `<div class="qa"><span class="q">${q}</span><span>${r}</span></div>`).join('')}</div>` : ''}
+    ${practiceSection(a.id)}
+    <div class="row"><a class="btn accent" href="#quiz" style="text-decoration:none">Practicar en el quiz</a></div>
+  </section>`;
+  if (a.special === 'repr') reprWidget($('#repr'));
+  if (a.special === 'walk') walkWidget($('#walk'));
+  const stops = [];
+  if (a.anim) stops.push(player($('#pl'), a.anim, a.graph, { modes: a.modes, mode: 'min' }));
+  if (KITS[a.id]) { const st2 = mountExample(a.id); if (st2) stops.push(st2); }
+  cleanup = () => stops.forEach(f => f && f());
+  window.scrollTo(0, 0);
+}
+
+/* ---------- quiz ---------- */
+function viewQuiz() {
+  let sel = 'todos', count = 10;
+  app.innerHTML = `<section class="stack-lg">
+    <div class="stack"><div class="eyebrow">Quiz tipo parcial</div><h2>¿Cuánto sabes?</h2><p class="muted">Las preguntas salen de los parciales de 2021, 2024 y el diferido, y de las preguntas que la profe dejó en clase.</p></div>
+    <div class="card stack">
+      <h3>Selección simple</h3>
+      <div class="plabel">Tema</div>
+      <div class="chips" id="qt">${[['todos', 'Todos']].concat(Object.entries(TOPICS)).map(([k, v]) => `<button class="chip" data-t="${k}" aria-pressed="${k === 'todos'}">${v}</button>`).join('')}</div>
+      <div class="plabel">Cantidad</div>
+      <div class="toggle" id="qn">${[10, 20, 'Todas'].map(n => `<button data-n="${n}" aria-pressed="${n === 10}">${n}</button>`).join('')}</div>
+      <button class="btn primary" id="qstart" style="justify-content:center">Empezar quiz</button>
+    </div>
+    <div class="card stack">
+      <h3>Preguntas de desarrollo</h3>
+      <p class="muted">Las de verdad del parcial. Respóndela en tu cabeza o en papel, mira la respuesta modelo y califícate. Llevas ${stats().mastered} de ${OPEN.length} dominadas.</p>
+      <button class="btn accent" id="ostart" style="justify-content:center">Practicar desarrollo</button>
+    </div>
+  </section>`;
+  $$('#qt .chip').forEach(b => b.onclick = () => { sel = b.dataset.t; $$('#qt .chip').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+  $$('#qn button').forEach(b => b.onclick = () => { count = b.dataset.n === 'Todas' ? 999 : +b.dataset.n; $$('#qn button').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+  $('#qstart').onclick = () => runQuiz(shuffle(MCQ.filter(q => sel === 'todos' || q.t === sel)).slice(0, count));
+  $('#ostart').onclick = () => runOpen();
+}
+
+function runQuiz(qs) {
+  let i = 0, score = 0, streak = 0, bestStreak = 0; const missed = [];
+  const show = () => {
+    const q = qs[i], order = shuffle(q.o.map((t, k) => ({ t, k })));
+    app.innerHTML = `<section class="qcard">
+      <div class="qhead"><span>${TOPICS[q.t]} · ${i + 1}/${qs.length}</span><span>${score} correctas${streak >= 2 ? ` · <span class="streak">racha ${streak}</span>` : ''}</span></div>
+      <div class="prog"><i style="width:${i / qs.length * 100}%"></i></div>
+      <p class="qtext">${q.q}</p>
+      <div class="opts">${order.map((o, j) => `<button class="opt" data-k="${o.k}"><span class="k">${'ABCD'[j]}</span><span>${o.t}</span></button>`).join('')}</div>
+      <div id="qexp"></div>
+    </section>`;
+    $$('.opt').forEach(b => b.onclick = () => {
+      const k = +b.dataset.k, ok = k === q.a;
+      $$('.opt').forEach(x => { x.disabled = true; if (+x.dataset.k === q.a) x.classList.add('ok'); });
+      if (!ok) { b.classList.add('ko'); missed.push(q); streak = 0; } else { score++; streak++; bestStreak = Math.max(bestStreak, streak); }
+      $('#qexp').innerHTML = `<div class="stack"><div class="exp ${ok ? 'ok' : 'ko'}"><b>${ok ? (streak >= 3 ? '¡Vas en racha!' : '¡Correcto!') : 'Casi. La correcta está en verde.'}</b>${q.e}</div><button class="btn primary" id="qnext" style="justify-content:center">${i < qs.length - 1 ? 'Siguiente pregunta' : 'Ver resultado'}</button></div>`;
+      $('#qnext').onclick = () => { i++; i < qs.length ? show() : end(); };
+      $('#qnext').focus();
+    });
+    window.scrollTo(0, 0);
+  };
+  const end = () => {
+    const pct = Math.round(score / qs.length * 100), prev = store.get('quizBest', 0);
+    if (qs.length >= 10 && pct > prev) store.set('quizBest', pct);
+    const nota = (score / qs.length * 20).toFixed(1);
+    app.innerHTML = `<section class="stack-lg">
+      <div class="card stack" style="text-align:center;align-items:center">
+        <div class="eyebrow">Resultado</div>
+        <div class="score-big">${score}/${qs.length}</div>
+        <p>${pct >= 90 ? '¡Listo para el parcial!' : pct >= 70 ? 'Muy bien. Repasa las que fallaste y vuelve.' : pct >= 50 ? 'Vas bien encaminado. Revisa los algoritmos de los temas que fallaste.' : 'Arranca por el glosario y los algoritmos animados, y vuelve a intentarlo.'}</p>
+        <p class="muted mono">≈ ${nota}/20 · mejor racha ${bestStreak}${qs.length >= 10 && pct > prev ? ' · ¡nuevo récord!' : ''}</p>
+        <div class="row" style="justify-content:center"><button class="btn primary" id="again">Otra ronda</button>${missed.length ? '<button class="btn accent" id="retry">Repetir las falladas</button>' : ''}<a class="btn ghost" href="#quiz" style="text-decoration:none" id="back">Menú del quiz</a></div>
+      </div>
+      ${missed.length ? `<div class="stack"><h3>Para repasar</h3>${missed.map(q => `<div class="card stack"><span class="tag">${TOPICS[q.t]}</span><b>${q.q}</b><span><span style="color:var(--good);font-weight:700">Respuesta:</span> ${q.o[q.a]}</span><span class="muted">${q.e}</span></div>`).join('')}</div>` : ''}
+    </section>`;
+    $('#again').onclick = () => runQuiz(shuffle(MCQ).slice(0, qs.length));
+    if (missed.length) $('#retry').onclick = () => runQuiz(shuffle(missed));
+    $('#back').onclick = (e) => { e.preventDefault(); viewQuiz(); };
+    window.scrollTo(0, 0);
+  };
+  if (!qs.length) { viewQuiz(); return; }
+  show();
+}
+
+function runOpen() {
+  const st = store.get('open', {});
+  const pool = OPEN.map((q, idx) => ({ ...q, idx })).sort((a, b) => (st[a.idx] === 'ok') - (st[b.idx] === 'ok'));
+  let i = 0;
+  const show = () => {
+    const q = pool[i];
+    app.innerHTML = `<section class="qcard">
+      <div class="qhead"><span>${q.src}</span><span>${i + 1}/${pool.length}</span></div>
+      <div class="prog"><i style="width:${i / pool.length * 100}%"></i></div>
+      <p class="qtext">${q.q}</p>
+      <p class="muted">Piensa tu respuesta (o escríbela en papel) antes de mirar.</p>
+      <button class="btn primary" id="reveal" style="justify-content:center">Ver respuesta modelo</button>
+      <div id="ans"></div>
+      <div class="row"><button class="btn ghost" id="oprev" ${i === 0 ? 'disabled' : ''}>‹ Anterior</button><button class="btn ghost" id="oskip">${i < pool.length - 1 ? 'Saltar ›' : 'Terminar'}</button></div>
+    </section>`;
+    $('#reveal').onclick = () => {
+      $('#reveal').hidden = true;
+      $('#ans').innerHTML = `<div class="answer card"><div class="plabel">Respuesta modelo</div><p>${q.a}</p><div class="plabel">No puede faltar</div><ul class="checklist">${q.k.map(x => `<li><span>${x}</span></li>`).join('')}</ul>
+        <div class="plabel">¿Cómo te fue?</div><div class="rate"><button class="btn" data-r="no">Repasar</button><button class="btn" data-r="mid">Más o menos</button><button class="btn accent" data-r="ok">La sabía</button></div></div>`;
+      $$('.rate .btn').forEach(b => b.onclick = () => { st[q.idx] = b.dataset.r; store.set('open', st); next(); });
+    };
+    $('#oprev').onclick = () => { if (i > 0) { i--; show(); } };
+    $('#oskip').onclick = next;
+    window.scrollTo(0, 0);
+  };
+  const next = () => { i++; if (i < pool.length) show(); else { const m = Object.values(st).filter(v => v === 'ok').length; app.innerHTML = `<section class="card stack" style="text-align:center;align-items:center"><div class="eyebrow">Ronda terminada</div><div class="score-big">${m}/${OPEN.length}</div><p>preguntas de desarrollo marcadas como "La sabía". Las que no, vuelven primero en la próxima ronda.</p><div class="row" style="justify-content:center"><button class="btn primary" id="oagain">Otra ronda</button><button class="btn ghost" id="omenu">Menú del quiz</button></div></section>`; $('#oagain').onclick = runOpen; $('#omenu').onclick = viewQuiz; } };
+  show();
+}
+
+/* ---------- relacionar ---------- */
+function viewRelacionar() {
+  let mode = 'def', timer = null;
+  const setup = () => {
+    app.innerHTML = `<section class="stack">
+      <div class="eyebrow">Relacionar</div><h2>Une cada término con su definición</h2>
+      <p class="muted">Toca un término y luego su definición. 5 pares por ronda, contra reloj. Cada error suma 3 segundos.</p>
+      <div class="row" style="justify-content:space-between"><div class="toggle" id="mm"><button data-m="def" aria-pressed="${mode === 'def'}">Definiciones</button><button data-m="alg" aria-pressed="${mode === 'alg'}">Algoritmos</button></div><span class="timer" id="tm">0.0s</span></div>
+      <div class="mgrid"><div class="mcol" id="mt"></div><div class="mcol" id="md"></div></div>
+      <p class="muted mono" id="mstat"></p>
+      <div id="mend"></div>
+    </section>`;
+    $$('#mm button').forEach(b => b.onclick = () => { mode = b.dataset.m; clearInterval(timer); setup(); });
+    round();
+  };
+  const round = () => {
+    const src = mode === 'def' ? GLOS.map(x => [x.t, x.s]) : ALG_PAIRS;
+    const pairs = shuffle(src).slice(0, 5);
+    let selT = null, done = 0, errs = 0, t0 = null;
+    const best = store.get(mode === 'def' ? 'matchBest' : 'matchBestAlg', null);
+    $('#mstat').textContent = best ? `Récord: ${best}s` : 'Aún sin récord en este modo.';
+    $('#mend').innerHTML = '';
+    $('#mt').innerHTML = pairs.map((p, k) => `<button class="mbtn term" data-k="${k}">${p[0]}</button>`).join('');
+    $('#md').innerHTML = shuffle(pairs.map((p, k) => ({ p, k }))).map(({ p, k }) => `<button class="mbtn" data-k="${k}">${p[1]}</button>`).join('');
+    clearInterval(timer); $('#tm').textContent = '0.0s';
+    const start = () => { if (t0) return; t0 = Date.now(); timer = setInterval(() => { const el = $('#tm'); if (el) el.textContent = ((Date.now() - t0) / 1000 + errs * 3).toFixed(1) + 's'; }, 100); };
+    $$('#mt .mbtn').forEach(b => b.onclick = () => { if (b.classList.contains('done')) return; start(); $$('#mt .mbtn').forEach(x => x.classList.remove('sel')); b.classList.add('sel'); selT = b; });
+    $$('#md .mbtn').forEach(b => b.onclick = () => {
+      if (b.classList.contains('done') || !selT) return;
+      if (b.dataset.k === selT.dataset.k) {
+        b.classList.add('done'); selT.classList.add('done'); selT.classList.remove('sel'); b.disabled = selT.disabled = true; selT = null; done++;
+        if (done === 5) {
+          clearInterval(timer);
+          const secs = +((Date.now() - t0) / 1000 + errs * 3).toFixed(1);
+          const key = mode === 'def' ? 'matchBest' : 'matchBestAlg', rec = !best || secs < best;
+          if (rec) store.set(key, secs);
+          $('#tm').textContent = secs + 's';
+          $('#mend').innerHTML = `<div class="card stack" style="text-align:center;align-items:center"><div class="score-big">${secs}s</div><p>${errs ? `${errs} error${errs > 1 ? 'es' : ''} (+${errs * 3}s).` : 'Sin errores.'} ${rec ? '¡Nuevo récord!' : `Récord: ${best}s.`}</p><button class="btn primary" id="mnext">Otra ronda</button></div>`;
+          $('#mnext').onclick = round;
+        }
+      } else {
+        errs++; b.classList.remove('wrong'); void b.offsetWidth; b.classList.add('wrong');
+        setTimeout(() => b.classList.remove('wrong'), 400);
+      }
+    });
+  };
+  setup();
+  return () => clearInterval(timer);
+}
+
+/* ============ práctica: grafos, solucionadores y ejercicios ============ */
+const UPOS5 = { A: [50, 62], B: [190, 42], C: [330, 72], D: [110, 210], E: [280, 210] };
+const UPOS6 = { A: [40, 125], B: [150, 42], C: [150, 210], D: [262, 42], E: [262, 210], F: [340, 125] };
+const P1 = { directed: false, pos: UPOS5, edges: [['A','B',3],['A','D',6],['B','C',4],['B','D',2],['B','E',7],['C','E',1],['D','E',5]] };
+const P2 = { directed: false, pos: UPOS6, edges: [['A','B',7],['A','C',3],['B','C',1],['B','D',6],['C','E',8],['D','E',4],['D','F',2],['E','F',5],['B','E',9]] };
+const P3 = { directed: false, pos: { A: [40, 62], B: [180, 42], C: [330, 62], D: [60, 210], E: [190, 150], F: [320, 210] },
+  edges: [['A','B',3],['A','D',8],['A','E',9],['B','C',6],['B','E',2],['C','F',1],['D','E',4],['E','F',7],['C','E',5]] };
+const P4 = { directed: false, pos: { A: [40, 125], B: [130, 45], C: [130, 205], D: [232, 45], E: [232, 205], F: [334, 45], G: [334, 205] },
+  edges: [['A','B',1],['A','C',1],['B','D',1],['B','E',1],['C','E',1],['D','F',1],['E','G',1],['F','G',1]] };
+const SQ = { A: [60, 62], B: [314, 62], C: [314, 205], D: [60, 205] };
+const BF1 = { directed: true, pos: { S: [40, 128], A: [180, 42], B: [180, 214], C: [330, 128] }, edges: [['A','C',2],['S','A',4],['S','B',3],['B','A',-2],['B','C',5]] };
+const BPOS = { S: [40, 128], A: [160, 42], B: [160, 214], C: [290, 42], D: [320, 200] };
+const BF2 = { directed: true, pos: BPOS, edges: [['S','A',5],['S','B',2],['B','A',1],['A','C',-3],['B','C',6],['C','D',2],['B','D',4]] };
+const BF3 = { directed: true, pos: BPOS, edges: [['C','D',1],['S','A',6],['S','B',4],['A','C',-2],['B','A',-3],['B','D',5],['A','D',4]] };
+const F1 = { directed: true, pos: SQ, edges: [['A','B',3],['B','C',2],['C','D',1],['D','A',4],['A','C',7]] };
+const F2 = { directed: true, pos: SQ, edges: [['A','B',5],['A','D',2],['D','B',1],['B','C',3],['C','D',6]] };
+const F3 = { directed: true, pos: SQ, edges: [['A','B',2],['B','C',4],['C','A',3],['C','D',-2],['D','A',6]] };
+const W1 = { directed: true, pos: SQ, edges: [['A','B',1],['B','C',1],['C','A',1],['D','C',1]] };
+const W2 = { directed: true, pos: SQ, edges: [['A','B',1],['B','D',1],['D','C',1],['C','B',1]] };
+const W3 = { directed: true, pos: SQ, edges: [['A','C',1],['C','D',1],['B','A',1],['B','D',1]] };
+const RPOS = { 1: [50, 125], 2: [182, 42], 3: [182, 210], 4: [320, 125] };
+const mkR = E => ({ directed: true, pos: RPOS, edges: E.map(([u, v]) => [String(u), String(v), 1]) });
+const R2 = mkR([[1,3],[2,1],[3,2],[3,4],[4,2]]), R3 = mkR([[1,2],[1,3],[2,4],[3,4],[4,1]]), R4 = mkR([[1,2],[1,4],[2,3],[3,1],[4,3],[4,2]]);
+
+const nodesOf = g => Object.keys(g.pos).sort();
+const W = (g, u, v) => { for (const [a, b, w] of g.edges) { if (a === u && b === v) return w; if (!g.directed && a === v && b === u) return w; } return Infinity; };
+function bfsOrder(g, s) { const A = adjOf(g), q = [s], vis = { [s]: 1 }, o = []; while (q.length) { const u = q.shift(); o.push(u); for (const [v] of A[u]) if (!vis[v]) { vis[v] = 1; q.push(v); } } return o; }
+function dfsOrder(g, s) { const A = adjOf(g), o = [], vis = {}; (function go(u) { vis[u] = 1; o.push(u); for (const [v] of A[u]) if (!vis[v]) go(v); })(s); return o; }
+function dijSolve(g, s) { const N = nodesOf(g), A = adjOf(g), d = {}, prev = {}, fin = {}; N.forEach(n => { d[n] = Infinity; prev[n] = null; }); d[s] = 0;
+  for (;;) { let u = null; N.forEach(n => { if (!fin[n] && d[n] < Infinity && (u === null || d[n] < d[u])) u = n; }); if (u === null) break; fin[u] = 1;
+    for (const [v, w] of A[u]) if (!fin[v] && d[u] + w < d[v]) { d[v] = d[u] + w; prev[v] = u; } } return { d, prev }; }
+const pathOf = (prev, t) => { const p = []; let x = t; while (x) { p.unshift(x); x = prev[x]; } return p; };
+function bfSolve(g, s) { const N = nodesOf(g), d = {}, prev = {}; N.forEach(n => { d[n] = Infinity; prev[n] = null; }); d[s] = 0;
+  for (let i = 0; i < N.length - 1; i++) { let ch = false; for (const [u, v, w] of g.edges) if (d[u] + w < d[v]) { d[v] = d[u] + w; prev[v] = u; ch = true; } if (!ch) break; } return { d, prev }; }
+function floydSolve(g) { const N = nodesOf(g), D = N.map(i => N.map(j => i === j ? 0 : W(g, i, j)));
+  for (let k = 0; k < N.length; k++) for (let i = 0; i < N.length; i++) for (let j = 0; j < N.length; j++) if (D[i][k] + D[k][j] < D[i][j]) D[i][j] = D[i][k] + D[k][j]; return D; }
+function warshallSolve(g) { const N = nodesOf(g), R = N.map(i => N.map(j => (i === j || W(g, i, j) < Infinity) ? 1 : 0));
+  for (let k = 0; k < N.length; k++) for (let i = 0; i < N.length; i++) for (let j = 0; j < N.length; j++) if (R[i][k] && R[k][j]) R[i][j] = 1; return R; }
+function dantzigSolve(g) { const N = nodesOf(g), D = [[0]], out = [D.map(r => r.slice())];
+  for (let k = 1; k < N.length; k++) { const nk = N[k]; const col = [], row = [];
+    for (let i = 0; i < k; i++) { let a = Infinity, b = Infinity; for (let j = 0; j < k; j++) { a = Math.min(a, D[i][j] + W(g, N[j], nk)); b = Math.min(b, W(g, nk, N[j]) + D[j][i]); } col.push(a); row.push(b); }
+    for (let i = 0; i < k; i++) D[i].push(col[i]); D.push(row.concat([0]));
+    for (let i = 0; i < k; i++) for (let j = 0; j < k; j++) if (D[i][k] + D[k][j] < D[i][j]) D[i][j] = D[i][k] + D[k][j];
+    out.push(D.map(r => r.slice())); } return out; }
+function kruskalOrder(g, mode) { const N = nodesOf(g), comp = {}; N.forEach((n, i) => comp[n] = i); const E = g.edges.slice().sort((a, b) => mode === 'max' ? b[2] - a[2] : a[2] - b[2]); const o = []; let t = 0;
+  for (const [u, v, w] of E) { if (o.length === N.length - 1) break; if (comp[u] !== comp[v]) { const c = comp[v]; N.forEach(n => { if (comp[n] === c) comp[n] = comp[u]; }); o.push(ek(g, u, v)); t += w; } } return { o, t }; }
+function primOrder(g, mode, s) { const N = nodesOf(g), inT = { [s]: 1 }, o = []; let t = 0;
+  while (o.length < N.length - 1) { const c = g.edges.filter(([u, v]) => !!inT[u] !== !!inT[v]); const b = c.reduce((x, e) => (mode === 'max' ? e[2] > x[2] : e[2] < x[2]) ? e : x); inT[b[0]] = inT[b[1]] = 1; o.push(ek(g, b[0], b[1])); t += b[2]; } return { o, t }; }
+function boruvkaSolve(g) { const N = nodesOf(g), comp = {}; N.forEach((n, i) => comp[n] = i); let rounds = 0, t = 0, first = null;
+  while (new Set(Object.values(comp)).size > 1) { rounds++; const pick = {};
+    new Set(Object.values(comp)).forEach(c => { let b = null; g.edges.forEach(e => { if ((comp[e[0]] === c) !== (comp[e[1]] === c) && (!b || e[2] < b[2])) b = e; }); pick[ek(g, b[0], b[1])] = b; });
+    if (!first) first = Object.keys(pick);
+    Object.values(pick).forEach(([u, v, w]) => { if (comp[u] !== comp[v]) { const c = comp[v]; N.forEach(n => { if (comp[n] === c) comp[n] = comp[u]; }); t += w; } }); }
+  return { first, rounds, t }; }
+
+function genWarshall(g) {
+  const N = nodesOf(g), n = N.length, r = recorder(), R = N.map(i => N.map(j => (i === j || W(g, i, j) < Infinity) ? 1 : 0));
+  const mat = (k, chg) => `<div class="tscroll"><table class="t"><tr><th></th>${N.map((c, j) => `<th class="${j === k ? 'kk' : ''}">${c}</th>`).join('')}</tr>${R.map((row, i) => `<tr><th class="${i === k ? 'kk' : ''}">${N[i]}</th>${row.map((x, j) => `<td class="${chg.has(i + ',' + j) ? 'chg' : ((i === k || j === k) ? 'kk' : '')}">${x}</td>`).join('')}</tr>`).join('')}</table></div>`;
+  r.push('Inicio: R = I ∨ A. Un 1 donde hay arco directo, y 1 en toda la diagonal (cada nodo se alcanza a sí mismo).', mat(-1, new Set()));
+  for (let k = 0; k < n; k++) { const chg = new Set(), m = [];
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) if (!R[i][j] && R[i][k] && R[k][j]) { R[i][j] = 1; chg.add(i + ',' + j); m.push(`${N[i]}→${N[j]}`); }
+    r.nodes = {}; r.nodes[N[k]] = 'cur'; for (let q = 0; q < k; q++) r.nodes[N[q]] = 'done';
+    r.push(`k = ${N[k]}: si i llega a ${N[k]} y ${N[k]} llega a j, entonces i llega a j. ${m.length ? 'Nuevos 1: <b>' + m.join(', ') + '</b>.' : '<b>Sin cambios.</b>'}`, mat(k, chg)); }
+  r.nodes = {}; N.forEach(x => r.nodes[x] = 'done');
+  r.push('Listo: esta es la clausura transitiva. Un 1 en (i, j) significa que existe un camino de i a j.', mat(-1, new Set()));
+  return r.steps;
+}
+function genDantzig(g) {
+  const N = nodesOf(g), r = recorder(), all = dantzigSolve(g);
+  const mat = (D, k, chg) => `<div class="plabel">D${D.length}</div><div class="tscroll"><table class="t"><tr><th></th>${D.map((_, j) => `<th class="${j === k ? 'kk' : ''}">${N[j]}</th>`).join('')}</tr>${D.map((row, i) => `<tr><th class="${i === k ? 'kk' : ''}">${N[i]}</th>${row.map((x, j) => `<td class="${chg.has(i + ',' + j) ? 'chg' : ((i === k || j === k) ? 'kk' : '')}">${fmt(x)}</td>`).join('')}</tr>`).join('')}</table></div>`;
+  r.nodes[N[0]] = 'done';
+  r.push(`D1 solo contiene a ${N[0]}: d(${N[0]},${N[0]}) = 0.`, mat(all[0], -1, new Set()));
+  const D = [[0]];
+  for (let k = 1; k < N.length; k++) {
+    const nk = N[k], col = [], row = [];
+    for (let i = 0; i < k; i++) { let a = Infinity, b = Infinity; for (let j = 0; j < k; j++) { a = Math.min(a, D[i][j] + W(g, N[j], nk)); b = Math.min(b, W(g, nk, N[j]) + D[j][i]); } col.push(a); row.push(b); }
+    for (let i = 0; i < k; i++) D[i].push(col[i]); D.push(row.concat([0]));
+    r.nodes = {}; r.nodes[nk] = 'cur'; for (let q = 0; q < k; q++) r.nodes[N[q]] = 'done';
+    const nc = new Set(); for (let i = 0; i <= k; i++) { nc.add(i + ',' + k); nc.add(k + ',' + i); }
+    r.push(`Entra <b>${nk}</b>. Paso (a): su fila y su columna. d(i,${nk}) = min_j { d(i,j) + w(j,${nk}) } y d(${nk},i) = min_j { w(${nk},j) + d(j,i) }, usando la matriz anterior.`, mat(D.map(x => x.slice()), k, nc));
+    const chg = new Set(), m = [];
+    for (let i = 0; i < k; i++) for (let j = 0; j < k; j++) if (D[i][k] + D[k][j] < D[i][j]) { m.push(`d(${N[i]},${N[j]}): ${fmt(D[i][j])} → ${D[i][k] + D[k][j]}`); D[i][j] = D[i][k] + D[k][j]; chg.add(i + ',' + j); }
+    r.push(`Paso (b): ¿los viejos mejoran entre sí haciendo escala en ${nk}? ${m.length ? '<b>' + m.join('; ') + '</b>.' : '<b>Ninguno mejora.</b>'} Este paso necesita el (a), por eso no se pueden hacer en paralelo.`, mat(D.map(x => x.slice()), k, chg));
+  }
+  r.nodes = {}; N.forEach(x => r.nodes[x] = 'done');
+  r.push(`D${N.length} es la matriz final de distancias mínimas. Da lo mismo que Floyd-Warshall.`, mat(D, -1, new Set()));
+  return r.steps;
+}
+
+/* transporte */
+const T1 = { s: [5, 4], d: [3, 6], c: [[2, 4], [3, 1]] };
+const T2 = { s: [6, 4], d: [3, 4, 3], c: [[3, 1, 5], [2, 4, 1]] };
+const T3 = { s: [5, 5], d: [4, 2, 4], c: [[4, 6, 2], [3, 2, 5]] };
+function transSolve(T) { const n = T.d.length; let best = null;
+  const rec = (j, x) => { if (j === n) { if (x.reduce((a, b) => a + b, 0) !== T.s[0]) return; const y = T.d.map((dj, k) => dj - x[k]); if (y.reduce((a, b) => a + b, 0) !== T.s[1]) return;
+    const c = x.reduce((a, v, k) => a + v * T.c[0][k], 0) + y.reduce((a, v, k) => a + v * T.c[1][k], 0); if (!best || c < best.c) best = { c, f: [x.slice(), y] }; return; }
+    for (let v = 0; v <= T.d[j]; v++) { x.push(v); rec(j + 1, x); x.pop(); } };
+  rec(0, []); return best; }
+function transGraph(T) { const n = T.d.length, pos = { O1: [62, 70], O2: [62, 190] }, edges = [];
+  T.d.forEach((_, j) => pos['D' + (j + 1)] = [312, n === 2 ? [70, 190][j] : [40, 125, 210][j]]);
+  [0, 1].forEach(i => T.d.forEach((_, j) => edges.push(['O' + (i + 1), 'D' + (j + 1), T.c[i][j]]))); return { directed: true, pos, edges }; }
+const transTable = T => `<div class="tscroll"><table class="t"><tr><th>costo</th>${T.d.map((_, j) => `<th>D${j + 1}</th>`).join('')}<th>oferta</th></tr>${[0, 1].map(i => `<tr><th>O${i + 1}</th>${T.c[i].map(c => `<td>${c}</td>`).join('')}<td><b>${T.s[i]}</b></td></tr>`).join('')}<tr><th>demanda</th>${T.d.map(d => `<td><b>${d}</b></td>`).join('')}<td></td></tr></table></div>`;
+
+/* normalización y kits */
+const norm = v => { let s = String(v == null ? '' : v).trim().toLowerCase().replace(/\s+/g, '').replace(/−/g, '-').replace(/^\+/, ''); if (['∞', 'inf', 'infinito', 'i', 'oo'].includes(s)) s = 'inf'; return s; };
+const numStr = x => x === Infinity ? 'inf' : String(x);
+const parseNum = s => { s = norm(s).replace(',', '.'); if (s.includes('/')) { const [a, b] = s.split('/').map(Number); return b ? a / b : NaN; } if (s.endsWith('%')) return parseFloat(s) / 100; return s === '' ? NaN : Number(s); };
+const edgeName = k => k.replace('-', '–').replace('>', '→');
+const matAns = (N, D) => ({ rows: N, cols: N, ans: D.map(r => r.map(numStr)) });
+
+const KITS = {
+  bfs: { hideW: true,
+    ex: { g: P1, s: 'A' }, list: [{ g: P2, s: 'A' }, { g: P4, s: 'A' }, { g: P3, s: 'C' }],
+    st: x => `Recorre el grafo con <b>BFS</b> desde <b>${x.s}</b>. Los vecinos se revisan en orden alfabético. Toca los nodos en el orden en que salen de la cola.`,
+    parts: x => [{ type: 'nodeOrder', label: 'Orden de visita', ans: bfsOrder(x.g, x.s) }], steps: x => genBFS(x.g, x.s) },
+  dfs: { hideW: true,
+    ex: { g: P1, s: 'A' }, list: [{ g: P2, s: 'A' }, { g: P4, s: 'A' }, { g: P3, s: 'E' }],
+    st: x => `Recorre el grafo con <b>DFS</b> desde <b>${x.s}</b>. Los vecinos se revisan en orden alfabético. Toca los nodos en el orden en que se visitan.`,
+    parts: x => [{ type: 'nodeOrder', label: 'Orden de visita', ans: dfsOrder(x.g, x.s) }], steps: x => genDFS(x.g, x.s) },
+  alc: { hideW: true,
+    ex: { g: W1 }, list: [{ g: W2 }, { g: W3 }],
+    st: x => `Calcula la <b>clausura transitiva</b> (R = I ∨ A ∨ A² ∨ …) del grafo dirigido con Warshall. Toca cada celda para cambiarla entre 0 y 1.`,
+    parts: x => [{ type: 'matrix', label: 'Matriz de alcanzabilidad R', toggle: ['0', '1'], ...matAns(nodesOf(x.g), warshallSolve(x.g)) }], steps: x => genWarshall(x.g) },
+  dijkstra: {
+    ex: { g: P1, s: 'A', t: 'E' }, list: [{ g: P2, s: 'A', t: 'F' }, { g: P3, s: 'A', t: 'F' }, { g: P2, s: 'D', t: 'A' }],
+    st: x => `Usa <b>Dijkstra</b> para encontrar el camino más corto de <b>${x.s}</b> a <b>${x.t}</b>. Escribe la distancia final de cada nodo y el camino.`,
+    parts: x => { const r = dijSolve(x.g, x.s); return [{ type: 'nodeValues', label: 'Distancia final d(·) desde ' + x.s, ans: r.d }, { type: 'text', label: `Camino de ${x.s} a ${x.t} (ej.: ${x.s}-B-${x.t})`, ans: pathOf(r.prev, x.t).join('') }]; },
+    steps: x => genDijkstra(x.g, x.t, x.s) },
+  bf: {
+    ex: { g: BF1, s: 'S' }, list: [{ g: BF2, s: 'S' }, { g: BF3, s: 'S' }],
+    st: x => `Aplica <b>Bellman-Ford</b> desde <b>${x.s}</b>, revisando los arcos en este orden: ${x.g.edges.map(e => `${e[0]}→${e[1]}`).join(', ')}. Escribe la distancia final de cada nodo.`,
+    parts: x => [{ type: 'nodeValues', label: 'Distancia final d(·) desde ' + x.s, ans: bfSolve(x.g, x.s).d }], steps: x => genBF(x.g, x.s) },
+  floyd: {
+    ex: { g: F1 }, list: [{ g: F2 }, { g: F3 }, { g: G_FLOYD }],
+    st: x => `Aplica <b>Floyd-Warshall</b> y llena la matriz final de distancias mínimas. Escribe <b>inf</b> (o ∞) donde no haya camino.`,
+    parts: x => [{ type: 'matrix', label: 'Matriz final D', ...matAns(nodesOf(x.g), floydSolve(x.g)) }], steps: x => genFloyd(x.g) },
+  dantzig: {
+    ex: { g: F2 }, list: [{ g: F1 }, { g: F3 }],
+    st: x => `Aplica el <b>método de Dantzig</b> agregando los nodos en orden alfabético. Llena D3 (solo A, B y C) y la matriz final D4. Escribe <b>inf</b> donde no haya camino.`,
+    parts: x => { const all = dantzigSolve(x.g), N = nodesOf(x.g); return [{ type: 'matrix', label: 'D3 (nodos A, B, C)', ...matAns(N.slice(0, 3), all[2]) }, { type: 'matrix', label: 'D4 (final)', ...matAns(N, all[3]) }]; },
+    steps: x => genDantzig(x.g) },
+  kruskal: { modes: true,
+    ex: { g: P1, m: 'min' }, list: [{ g: P2, m: 'min' }, { g: P3, m: 'max' }, { g: P1, m: 'max' }],
+    st: x => `Construye el árbol cobertor <b>${x.m === 'min' ? 'MÍNIMO' : 'MÁXIMO'}</b> con <b>Kruskal</b>. Toca las aristas en el orden en que las agregas y escribe el peso total.`,
+    parts: x => { const r = kruskalOrder(x.g, x.m); return [{ type: 'edgeOrder', label: 'Aristas en orden', ans: r.o }, { type: 'number', label: 'Peso total del árbol', ans: r.t }]; },
+    steps: x => genKruskal(x.g, x.m) },
+  prim: { modes: true,
+    ex: { g: P1, m: 'min', s: 'A' }, list: [{ g: P2, m: 'min', s: 'A' }, { g: P3, m: 'min', s: 'D' }, { g: P2, m: 'max', s: 'F' }],
+    st: x => `Construye el árbol cobertor <b>${x.m === 'min' ? 'MÍNIMO' : 'MÁXIMO'}</b> con <b>Prim</b> empezando en <b>${x.s}</b>. Toca las aristas en el orden en que entran y escribe el peso total.`,
+    parts: x => { const r = primOrder(x.g, x.m, x.s); return [{ type: 'edgeOrder', label: 'Aristas en orden', ans: r.o }, { type: 'number', label: 'Peso total del árbol', ans: r.t }]; },
+    steps: x => genPrim(x.g, x.m, x.s) },
+  boruvka: {
+    ex: { g: P1 }, list: [{ g: P2 }, { g: P3 }],
+    st: x => `Aplica <b>Boruvka</b>. Toca las aristas que se agregan en la <b>ronda 1</b> (cada componente elige su arista más barata). Luego escribe cuántas rondas hacen falta y el peso total.`,
+    parts: x => { const r = boruvkaSolve(x.g); return [{ type: 'edgeSet', label: 'Aristas de la ronda 1', ans: r.first }, { type: 'number', label: 'Número de rondas', ans: r.rounds }, { type: 'number', label: 'Peso total del árbol', ans: r.t }]; },
+    steps: x => genBoruvka(x.g) },
+  repr: { hideW: true,
+    ex: null, list: [{ g: R2, k: 'adj' }, { g: R3, k: 'inc' }, { g: R4, k: 'star' }],
+    st: x => ({ adj: 'Llena la <b>matriz de adyacencia</b> del grafo dirigido. Toca cada celda para cambiarla entre 0 y 1.', inc: 'Llena la <b>matriz de incidencia</b> del grafo dirigido. Toca cada celda: 0 → +1 → −1. Las columnas son los arcos en el orden indicado.', star: 'Arma la <b>estructura estrella (forward star)</b>: los arcos ordenados por origen (y por destino si empatan) y el arreglo de punteros, empezando en 1.' })[x.k],
+    parts: x => { const N = nodesOf(x.g), E = x.g.edges.map(e => [e[0], e[1]]);
+      if (x.k === 'adj') return [{ type: 'matrix', label: 'Matriz de adyacencia', toggle: ['0', '1'], rows: N, cols: N, ans: N.map(i => N.map(j => E.some(e => e[0] === i && e[1] === j) ? '1' : '0')) }];
+      if (x.k === 'inc') return [{ type: 'matrix', label: 'Matriz de incidencia', toggle: ['0', '+1', '−1'], rows: N, cols: E.map((e, k) => `e${k + 1}<br>${e[0]}→${e[1]}`), ans: N.map(i => E.map(e => e[0] === i ? '1' : e[1] === i ? '-1' : '0')) }];
+      const S = E.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]), ptr = []; let p = 1; N.forEach(n => { ptr.push(String(p)); p += S.filter(e => e[0] === n).length; }); ptr.push(String(p));
+      return [{ type: 'matrix', label: 'Punteros', rows: ['ptr'], cols: N.concat(['fin']), ans: [ptr] }, { type: 'matrix', label: 'Arcos (destinos)', rows: ['arco'], cols: S.map((_, k) => String(k + 1)), ans: [S.map(e => e[1])] }]; } },
+  flujo: {
+    ex: { T: T1 }, list: [{ T: T2 }, { T: T3 }],
+    st: x => `Problema de transporte: envía desde los orígenes O todo lo que piden los destinos D al <b>menor costo total</b>. La tabla da el costo por unidad.${transTable(x.T)}`,
+    parts: x => { const b = transSolve(x.T); return [{ type: 'flow', label: 'Unidades a enviar f(Oi, Dj)', T: x.T, opt: b }, { type: 'number', label: 'Costo total mínimo', ans: b.c }]; },
+    graph: x => transGraph(x.T) },
+  borracho: { hideW: true,
+    ex: null, list: [{ q: 'El borracho está en <b>D</b>. ¿Cuál es la probabilidad de que en el siguiente paso vaya a <b>E</b>?', a: 1 / 3, h: 'D tiene 3 vecinos: A, B y E.' },
+      { q: 'Empieza en <b>A</b>. ¿Cuál es la probabilidad de estar en <b>C</b> después de exactamente 2 pasos?', a: 1 / 8, h: 'Desde A solo se llega a C pasando por B. Multiplica P(A→B) por P(B→C).' },
+      { q: 'A la larga, ¿qué fracción del tiempo pasa en <b>B</b>? (En un grafo conexo no bipartito es grado(B) / 2m.)', a: 2 / 7, h: 'Suma los grados de todos los nodos (eso es 2m) y divide el grado de B entre ese total.' }],
+    st: x => `Grafo de la práctica (sin pesos). ${x.q} Puedes escribir una fracción como 1/4.`,
+    parts: x => [{ type: 'number', label: 'Probabilidad', ans: x.a, hint: x.h }], graph: () => P1 },
+};
+
+/* ejemplos resueltos sin animación */
+const STATIC_EX = {
+  repr: () => `<p>Ejemplo resuelto: es el grafo de la clase 02 que está arriba. Toca cada representación para ver cómo queda.</p>`,
+  flujo: () => { const b = transSolve(T1); return `<p>${KITS.flujo.st({ T: T1 })}</p><div class="gwrap">${drawGraph(transGraph(T1))}</div>
+    <ol class="steps"><li><span>Oferta total 5 + 4 = 9 = demanda total 3 + 6. Está balanceado.</span></li><li><span>La ruta más barata es O2→D2 (costo 1): mandamos las 4 unidades de O2 ahí.</span></li><li><span>D2 todavía pide 2: salen de O1 (costo 4). D1 pide 3: salen de O1 (costo 2). O1 envía 2 + 3 = 5, toda su oferta.</span></li><li><span>Costo: 3·2 + 2·4 + 4·1 = <b>${b.c}</b>. Probando cualquier otro reparto factible, sale más caro.</span></li></ol>`; },
+  borracho: () => `<p>En el grafo de arriba (A–F), el borracho está en <b>A</b>, que tiene 2 vecinos (B y D).</p><ol class="steps"><li><span>P(A→B) = 1/2, porque A tiene 2 vecinos.</span></li><li><span>B tiene 4 vecinos (A, C, D, E): P(B→C) = 1/4.</span></li><li><span>P(estar en C después de 2 pasos desde A) = P(A→B)·P(B→C) = 1/2 · 1/4 = <b>1/8</b>. A→D→C no existe porque D no es vecino de C.</span></li><li><span>A la larga, la fracción del tiempo en un nodo es grado / 2m. Aquí 2m = 18, así que B (grado 4) recibe 4/18 = 2/9.</span></li></ol>`,
+};
+
+const exKey = (alg, n) => alg + '-' + n;
+const solvedSet = () => store.get('ej', {});
+const totalEx = () => Object.values(KITS).reduce((a, k) => a + k.list.length, 0);
+
+function practiceSection(alg) {
+  const kit = KITS[alg]; if (!kit) return '';
+  const sv = solvedSet();
+  return `<div class="sec"><h3>Practica</h3>
+    ${kit.ex || STATIC_EX[alg] ? `<div class="card stack"><div class="row" style="justify-content:space-between"><b>Ejemplo resuelto</b><span class="tag">paso a paso</span></div><div id="exsol"></div></div>` : ''}
+    <div class="exlist">${kit.list.map((_, i) => `<a class="alg-item" href="#ej-${alg}-${i + 1}"><span class="stn" style="${sv[exKey(alg, i + 1)] ? 'background:var(--good);border-color:var(--good)' : ''}"></span><span><span class="nm">Ejercicio ${i + 1}</span><br><span class="ds">${sv[exKey(alg, i + 1)] ? 'Resuelto' : 'Hazlo de cero'}</span></span><span class="ar">›</span></a>`).join('')}</div></div>`;
+}
+function mountExample(alg) {
+  const kit = KITS[alg], el = $('#exsol'); if (!el) return null;
+  if (STATIC_EX[alg]) { el.innerHTML = STATIC_EX[alg](); return null; }
+  const x = kit.ex;
+  el.innerHTML = `<p>${kit.st(x).replace(/Toca[^.]*\./g, '').replace(/Escribe[^.]*\./g, '').replace(/Llena[^.]*\./g, '')}</p><div class="exp-pl"></div><div class="exp ok"><b>Respuesta</b>${answerText(kit.parts(x), kit)}</div>`;
+  return player($('.exp-pl', el), () => kit.steps(x), x.g, { hideW: kit.hideW });
+}
+function answerText(parts) {
+  return parts.map(p => {
+    if (p.type === 'nodeOrder') return `${p.label}: <b>${p.ans.join(' → ')}</b>`;
+    if (p.type === 'edgeOrder') return `${p.label}: <b>${p.ans.map(edgeName).join(', ')}</b>`;
+    if (p.type === 'edgeSet') return `${p.label}: <b>${p.ans.map(edgeName).join(', ')}</b>`;
+    if (p.type === 'nodeValues') return `${p.label}: <b>${Object.entries(p.ans).map(([k, v]) => `${k}=${fmt(v)}`).join(', ')}</b>`;
+    if (p.type === 'text') return `${p.label.replace(/ \(ej.*\)/, '')}: <b>${p.ans.split('').join(' → ')}</b>`;
+    if (p.type === 'number') return `${p.label}: <b>${Number.isInteger(p.ans) ? p.ans : (+p.ans.toFixed(4))}</b>`;
+    if (p.type === 'flow') return `${p.label}: <b>${p.opt.f.map((r, i) => r.map((v, j) => v ? `O${i + 1}→D${j + 1} = ${v}` : '').filter(Boolean).join(', ')).join(', ')}</b>`;
+    if (p.type === 'matrix') return `${p.label}:<div class="tscroll"><table class="t"><tr><th></th>${p.cols.map(c => `<th>${c}</th>`).join('')}</tr>${p.rows.map((r, i) => `<tr><th>${r}</th>${p.ans[i].map(v => `<td>${v === 'inf' ? '∞' : v}</td>`).join('')}</tr>`).join('')}</table></div>`;
+    return '';
+  }).join('<br>');
+}
+
+function viewEx(alg, n) {
+  const kit = KITS[alg], x = kit && kit.list[n - 1], a = ALGS.find(q => q.id === alg);
+  if (!x) { location.hash = '#algoritmos'; return; }
+  const parts = kit.parts(x), g = kit.graph ? kit.graph(x) : x.g;
+  const sel = parts.find(p => ['nodeOrder', 'edgeOrder', 'edgeSet'].includes(p.type));
+  const state = parts.map(p => p.type === 'matrix' ? p.ans.map(r => r.map(() => p.toggle ? p.toggle[0] : '')) : p.type === 'flow' ? p.T.c.map(r => r.map(() => '')) : (['nodeOrder', 'edgeOrder', 'edgeSet'].includes(p.type) ? [] : p.type === 'nodeValues' ? {} : ''));
+  let stopPl = null, hints = 0;
+  app.innerHTML = `<section class="stack-lg" style="--c:${LINES[a.cat]}">
+    <div class="stack"><button class="back" onclick="location.hash='#alg-${alg}'">‹ ${a.name}</button>
+      <div class="line-head"><span class="eyebrow">Ejercicio ${n} de ${kit.list.length}</span><span class="bar"></span></div>
+      <div>${kit.st(x)}</div></div>
+    <div class="gwrap" id="exg"></div>
+    <div class="stack" id="parts"></div>
+    <div class="row"><button class="btn primary" id="chk">Comprobar</button><button class="btn ghost" id="hint">Pista</button><button class="btn ghost" id="sol">Ver solución</button></div>
+    <div id="fb"></div>
+    <div id="solbox"></div>
+    <div class="row">${n > 1 ? `<a class="btn ghost" style="text-decoration:none" href="#ej-${alg}-${n - 1}">‹ Anterior</a>` : ''}${n < kit.list.length ? `<a class="btn ghost" style="text-decoration:none" href="#ej-${alg}-${n + 1}">Siguiente ejercicio ›</a>` : `<a class="btn ghost" style="text-decoration:none" href="#alg-${alg}">Volver al algoritmo</a>`}</div>
+  </section>`;
+  const si = parts.indexOf(sel);
+  const drawG = () => {
+    const st = { nodes: {}, edges: {}, labels: {}, elabels: {} };
+    if (sel) {
+      const seq = state[si];
+      if (sel.type === 'nodeOrder') seq.forEach((v, i) => { st.nodes[v] = 'done'; st.labels[v] = '#' + (i + 1); });
+      else seq.forEach((k, i) => { st.edges[k] = 'tree'; if (sel.type === 'edgeOrder') st.elabels[k] = '#' + (i + 1); });
+    }
+    $('#exg').innerHTML = drawGraph(g, st, { hideW: kit.hideW, hit: sel && sel.type !== 'nodeOrder', ia: !!sel });
+  };
+  const partHtml = (p, i) => {
+    let body = '';
+    if (['nodeOrder', 'edgeOrder', 'edgeSet'].includes(p.type)) {
+      const seq = state[i];
+      body = `<p class="muted">${p.type === 'nodeOrder' ? 'Toca los nodos en el grafo.' : 'Toca las aristas en el grafo.'}</p><div class="q-items">${seq.length ? seq.map((v, k) => `<span class="qi">${p.type === 'edgeSet' ? '' : (k + 1) + '. '}${p.type === 'nodeOrder' ? v : edgeName(v)}</span>`).join('') : '<span class="empty">nada seleccionado</span>'}</div><div class="row"><button class="btn ghost" data-undo="${i}">Deshacer</button><button class="btn ghost" data-clear="${i}">Borrar todo</button></div>`;
+    } else if (p.type === 'nodeValues') {
+      body = `<div class="nvals">${Object.keys(p.ans).map(k => `<label class="nv"><span>d(${k})</span><input id="nv-${i}-${k}" data-p="${i}" data-k="${k}" inputmode="text" autocomplete="off" value="${esc(state[i][k] || '')}"></label>`).join('')}</div>`;
+    } else if (p.type === 'text' || p.type === 'number') {
+      body = `<input class="search" id="tx-${i}" data-p="${i}" inputmode="${p.type === 'number' ? 'decimal' : 'text'}" autocomplete="off" value="${esc(state[i])}">`;
+    } else if (p.type === 'matrix' || p.type === 'flow') {
+      const rows = p.type === 'flow' ? ['O1', 'O2'] : p.rows, cols = p.type === 'flow' ? p.T.d.map((_, j) => 'D' + (j + 1)) : p.cols;
+      body = `<div class="tscroll"><table class="t mx"><tr><th></th>${cols.map(c => `<th>${c}</th>`).join('')}</tr>${rows.map((r, a) => `<tr><th>${r}</th>${cols.map((_, b) => p.toggle ? `<td><button class="cell" id="cl-${i}-${a}-${b}" data-p="${i}" data-a="${a}" data-b="${b}">${state[i][a][b]}</button></td>` : `<td><input class="cin" id="ci-${i}-${a}-${b}" data-p="${i}" data-a="${a}" data-b="${b}" autocomplete="off" value="${esc(state[i][a][b])}"></td>`).join('')}</tr>`).join('')}</table></div>`;
+    }
+    return `<div class="card stack part" id="part-${i}"><div class="plabel">${p.label}</div>${body}<div class="pfb" id="pfb-${i}"></div></div>`;
+  };
+  const renderParts = () => {
+    $('#parts').innerHTML = parts.map(partHtml).join('');
+    $$('[data-undo]').forEach(b => b.onclick = () => { state[+b.dataset.undo].pop(); renderParts(); drawG(); });
+    $$('[data-clear]').forEach(b => b.onclick = () => { state[+b.dataset.clear].length = 0; renderParts(); drawG(); });
+    $$('.nvals input').forEach(inp => inp.oninput = () => { state[+inp.dataset.p][inp.dataset.k] = inp.value; });
+    $$('#parts input.search').forEach(inp => inp.oninput = () => { state[+inp.dataset.p] = inp.value; });
+    $$('#parts input.cin').forEach(inp => inp.oninput = () => { state[+inp.dataset.p][+inp.dataset.a][+inp.dataset.b] = inp.value; });
+    $$('#parts button.cell').forEach(b => b.onclick = () => { const p = parts[+b.dataset.p], cur = state[+b.dataset.p][+b.dataset.a][+b.dataset.b]; const nx = p.toggle[(p.toggle.indexOf(cur) + 1) % p.toggle.length]; state[+b.dataset.p][+b.dataset.a][+b.dataset.b] = nx; b.textContent = nx; b.classList.toggle('on', nx !== '0'); b.classList.remove('bad'); });
+    $$('#parts button.cell').forEach(b => b.classList.toggle('on', b.textContent !== '0'));
+  };
+  $('#exg').onclick = e => {
+    if (!sel) return;
+    const seq = state[si];
+    if (sel.type === 'nodeOrder') { const n = e.target.closest('[data-n]'); if (!n) return; const v = n.dataset.n; if (!seq.includes(v)) seq.push(v); }
+    else { const h = e.target.closest('[data-k]'); if (!h) return; const k = h.dataset.k; const ix = seq.indexOf(k); if (ix >= 0) { if (sel.type === 'edgeSet') seq.splice(ix, 1); } else seq.push(k); }
+    renderParts(); drawG(); $('#fb').innerHTML = '';
+  };
+  const check = () => {
+    let allOk = true;
+    parts.forEach((p, i) => {
+      let ok = false, msg = '';
+      if (p.type === 'nodeOrder' || p.type === 'edgeOrder') {
+        const s = state[i]; let k = 0; while (k < s.length && k < p.ans.length && s[k] === p.ans[k]) k++;
+        ok = k === p.ans.length && s.length === p.ans.length;
+        msg = ok ? 'Correcto.' : s.length === 0 ? 'Todavía no seleccionas nada.' : k === s.length ? `Los ${k} que llevas están bien. Faltan ${p.ans.length - k}.` : k === 0 ? 'El #1 ya no es el correcto. Vuelve a empezar desde ahí.' : `Los primeros ${k} están bien. Revisa a partir del #${k + 1}.`;
+      } else if (p.type === 'edgeSet') {
+        const s = new Set(state[i]), a = new Set(p.ans); const good = [...s].filter(x => a.has(x)).length;
+        ok = s.size === a.size && good === a.size; msg = ok ? 'Correcto.' : `Tienes ${good} de ${a.size} bien${s.size > good ? ` y ${s.size - good} que no van` : ''}.`;
+      } else if (p.type === 'nodeValues') {
+        let bad = 0; Object.entries(p.ans).forEach(([k, v]) => { const el = $(`#nv-${i}-${k}`); const g2 = norm(state[i][k]) === numStr(v); el.classList.toggle('bad', !g2); el.classList.toggle('good', g2); if (!g2) bad++; });
+        ok = !bad; msg = ok ? 'Correcto.' : `${bad} valor${bad > 1 ? 'es' : ''} por revisar (en rojo).`;
+      } else if (p.type === 'text') {
+        ok = norm(state[i]).replace(/[^a-z0-9]/g, '') === p.ans.toLowerCase(); msg = ok ? 'Correcto.' : 'Ese no es el camino más corto. Recuerda reconstruirlo con prev, de atrás hacia adelante.';
+      } else if (p.type === 'number') {
+        const v = parseNum(state[i]); ok = Math.abs(v - p.ans) < 1e-3; msg = ok ? 'Correcto.' : isNaN(v) ? 'Escribe un número.' : 'No es ese valor.';
+      } else if (p.type === 'matrix') {
+        let bad = 0; p.ans.forEach((r, a) => r.forEach((v, b) => { const el = $(p.toggle ? `#cl-${i}-${a}-${b}` : `#ci-${i}-${a}-${b}`); const g2 = norm(state[i][a][b]) === norm(v); el.classList.toggle('bad', !g2); if (!p.toggle) el.classList.toggle('good', g2); if (!g2) bad++; }));
+        ok = !bad; msg = ok ? 'Correcto.' : `${bad} celda${bad > 1 ? 's' : ''} por revisar (en rojo).`;
+      } else if (p.type === 'flow') {
+        const F = state[i].map(r => r.map(v => v === '' ? 0 : Number(norm(v)))), T = p.T;
+        const okNum = F.every(r => r.every(v => Number.isInteger(v) && v >= 0));
+        const rowsOk = F.every((r, a) => r.reduce((x, y) => x + y, 0) === T.s[a]), colsOk = T.d.every((d, b) => F[0][b] + F[1][b] === d);
+        const cost = F.reduce((x, r, a) => x + r.reduce((y, v, b) => y + v * T.c[a][b], 0), 0);
+        ok = okNum && rowsOk && colsOk && cost === p.opt.c;
+        msg = !okNum ? 'Usa enteros mayores o iguales a 0.' : !rowsOk ? 'Cada origen debe enviar exactamente su oferta.' : !colsOk ? 'Cada destino debe recibir exactamente su demanda.' : ok ? 'Correcto: es factible y de costo mínimo.' : `Es factible, pero cuesta ${cost}. Se puede más barato.`;
+      }
+      $('#pfb-' + i).innerHTML = `<span class="estatus ${ok ? 'ok' : 'no'}">${msg}</span>`;
+      if (!ok) allOk = false;
+    });
+    if (allOk) {
+      const sv = solvedSet(); sv[exKey(alg, n)] = true; store.set('ej', sv);
+      $('#fb').innerHTML = `<div class="exp ok"><b>¡Resuelto!</b>${n < kit.list.length ? 'Pasa al siguiente ejercicio.' : 'Terminaste los ejercicios de este algoritmo.'}</div>`;
+    } else $('#fb').innerHTML = `<div class="exp ko"><b>Todavía no.</b>Revisa las partes marcadas. Si te trabas, pide una pista.</div>`;
+  };
+  const hint = () => {
+    hints++;
+    const p = parts[Math.min(hints - 1, parts.length - 1)];
+    let h = '';
+    if (p.type === 'nodeOrder') h = `Empieza así: <b>${p.ans.slice(0, Math.min(hints + 1, p.ans.length - 1)).join(' → ')} → …</b>`;
+    else if (p.type === 'edgeOrder') h = `La primera arista es <b>${edgeName(p.ans[0])}</b>${hints > 1 ? `, la segunda <b>${edgeName(p.ans[1])}</b>` : ''}.`;
+    else if (p.type === 'edgeSet') h = `Una de ellas es <b>${edgeName(p.ans[0])}</b>. Recorre cada nodo y busca su arista más barata.`;
+    else if (p.type === 'nodeValues') { const e = Object.entries(p.ans).filter(([, v]) => v !== 0); const [k, v] = e[Math.min(hints - 1, e.length - 1)]; h = `d(${k}) = <b>${fmt(v)}</b>. El origen siempre vale 0.`; }
+    else if (p.type === 'text') h = `El camino empieza en ${p.ans[0]} y termina en ${p.ans[p.ans.length - 1]}; tiene ${p.ans.length - 1} aristas.`;
+    else if (p.type === 'number') h = p.hint || 'Suma los pesos de las aristas que elegiste.';
+    else if (p.type === 'matrix') { const cells = []; p.ans.forEach((r, a) => r.forEach((v, b) => { if (norm(v) !== '0' && norm(v) !== 'inf' && a !== b) cells.push([a, b, v]); })); const c = cells[Math.min(hints - 1, cells.length - 1)] || [0, 0, p.ans[0][0]]; h = `${p.rows[c[0]]}, ${String(p.cols[c[1]]).replace(/<br>.*/, '')} = <b>${c[2] === 'inf' ? '∞' : c[2]}</b>.${p.toggle ? '' : ' Escribe inf donde no hay camino.'}`; }
+    else if (p.type === 'flow') h = 'Empieza llenando la ruta más barata de toda la tabla con todo lo que puedas.';
+    $('#fb').innerHTML = `<div class="ojo"><b>Pista ${hints}</b>${h}</div>`;
+  };
+  $('#chk').onclick = check; $('#hint').onclick = hint;
+  $('#sol').onclick = () => {
+    $('#solbox').innerHTML = `<div class="card stack"><b>Solución</b><div>${answerText(parts)}</div>${kit.steps ? '<div id="solpl"></div>' : ''}</div>`;
+    if (kit.steps) stopPl = player($('#solpl'), () => kit.steps(x), x.g, { hideW: kit.hideW });
+    $('#solbox').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  renderParts(); drawG(); window.scrollTo(0, 0);
+  return () => { if (stopPl) stopPl(); };
+}
+
+/* ---------- router ---------- */
+function route() {
+  if (typeof cleanup === 'function') { cleanup(); cleanup = null; }
+  const h = (location.hash || '#inicio').slice(1);
+  let tab = (h.startsWith('alg-') || h.startsWith('ej-')) ? 'algoritmos' : h;
+  if (!['inicio', 'glosario', 'algoritmos', 'quiz', 'relacionar'].includes(tab)) tab = 'inicio';
+  $$('nav.tabs a').forEach(a => { if (a.dataset.tab === tab) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  if (h.startsWith('alg-')) return viewAlg(h.slice(4));
+  if (h.startsWith('ej-')) { const m = h.match(/^ej-([a-z]+)-(\d+)$/); if (m) { cleanup = viewEx(m[1], +m[2]); return; } }
+  ({ inicio: viewInicio, glosario: viewGlosario, algoritmos: viewAlgoritmos, quiz: viewQuiz, relacionar: () => { cleanup = viewRelacionar(); } })[tab]();
+  window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', route);
+route();
+</script>
+
+</body></html>
