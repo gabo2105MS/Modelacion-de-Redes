@@ -48,6 +48,7 @@ code,.mono{font-family:var(--f-mono);font-size:.88em}
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .btn{border:1.5px solid var(--ink);background:var(--card);border-radius:999px;padding:9px 16px;font-weight:700;font-size:.95rem;display:inline-flex;align-items:center;gap:6px;min-height:42px}
+a.btn{color:var(--ink)}
 .btn.primary{background:var(--ink);color:var(--paper)}
 .btn.accent{background:var(--accent);border-color:var(--accent);color:#fff}
 .btn.ghost{border-color:var(--line)}
@@ -105,6 +106,9 @@ svg .e.reject{stroke:var(--bad);stroke-width:2.5;stroke-dasharray:3 5;opacity:.7
 svg .ah.reject{fill:var(--bad)}
 svg .w{font-family:var(--f-mono);font-size:13px;font-weight:600;fill:var(--muted);paint-order:stroke;stroke:var(--card);stroke-width:5px;text-anchor:middle;dominant-baseline:central}
 svg .w.neg{fill:var(--bad)}
+svg .w.sel{fill:var(--tree);font-size:14px}
+svg .hit{stroke:transparent;stroke-width:22;pointer-events:stroke;cursor:pointer}
+svg.ia .n{cursor:pointer}
 svg .n circle{fill:var(--card);stroke:var(--ink);stroke-width:2.5}
 svg .n text{font-family:var(--f-display);font-weight:800;font-size:15px;fill:var(--ink);text-anchor:middle;dominant-baseline:central}
 svg .n.front circle{fill:var(--front-soft);stroke:var(--front);stroke-width:3.5}
@@ -160,7 +164,7 @@ ol.steps{margin:0;padding:0;list-style:none;counter-reset:s;display:grid;gap:8px
 ol.steps li{counter-increment:s;display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:start}
 ol.steps li::before{content:counter(s);width:28px;height:28px;border-radius:50%;background:var(--ink);color:var(--paper);font-family:var(--f-mono);font-weight:600;font-size:.85rem;display:grid;place-items:center}
 ul.dots{margin:0;padding-left:20px;display:grid;gap:6px}
-.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:.95rem}
+.kv{display:grid;grid-template-columns:minmax(0,38%) minmax(0,1fr);gap:6px 12px;font-size:.95rem}
 .kv dt{font-weight:700}
 .kv dd{margin:0;min-width:0}
 .truco{background:var(--tree-soft);border-radius:12px;padding:12px 14px;font-weight:700}
@@ -229,6 +233,17 @@ ul.dots{margin:0;padding-left:20px;display:grid;gap:6px}
 .mbtn.done{border-color:var(--good);background:var(--good-soft);opacity:.55}
 .mbtn.wrong{border-color:var(--bad);background:var(--bad-soft);animation:shake .35s}
 @keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.nvals{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+.nv{display:grid;gap:3px;font-family:var(--f-mono);font-size:.82rem;font-weight:600}
+.nv input,.cin{width:100%;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:8px;font:600 .95rem var(--f-mono);text-align:center}
+.cin{width:54px;padding:6px 4px}
+table.t.mx td{padding:3px}
+.cell{width:46px;height:38px;border:1.5px solid var(--line);background:var(--card);border-radius:7px;font:600 .9rem var(--f-mono)}
+.cell.on{background:var(--tree-soft);border-color:var(--tree);color:var(--tree)}
+input.bad,.cell.bad{border-color:var(--bad)!important;background:var(--bad-soft)!important}
+input.good{border-color:var(--good);background:var(--good-soft)}
+.exlist{display:grid;gap:8px}
+.pfb:empty{display:none}
 .timer{font-family:var(--f-mono);font-weight:600;font-size:1.4rem;font-variant-numeric:tabular-nums}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 @media (max-width:420px){ .stats .stat .n{font-size:1.35rem} .qtext{font-size:1.18rem} .pc{grid-template-columns:1fr} }
@@ -338,9 +353,10 @@ function adjOf(g) {
 }
 const snap = o => JSON.parse(JSON.stringify(o));
 
-function drawGraph(g, st = {}) {
+function drawGraph(g, st = {}, o = {}) {
   const R = 17, nodes = st.nodes || {}, edges = st.edges || {}, labels = st.labels || {};
-  let out = '';
+  const elabels = st.elabels || {};
+  let out = '', hits = '';
   g.edges.forEach(([u, v, w]) => {
     const [x1, y1] = g.pos[u], [x2, y2] = g.pos[v];
     const k = ek(g, u, v), cls = edges[k] || '';
@@ -353,13 +369,15 @@ function drawGraph(g, st = {}) {
       out += `<polygon class="ah ${cls}" points="${tx},${ty} ${bx + px},${by + py} ${bx - px},${by - py}"/>`;
     }
     const mx = (x1 + x2) / 2 - uy * 11, my = (y1 + y2) / 2 + ux * 11;
-    out += `<text class="w ${w < 0 ? 'neg' : ''}" x="${mx}" y="${my}">${w}</text>`;
+    if (!o.hideW || elabels[k]) out += `<text class="w ${w < 0 ? 'neg' : ''} ${elabels[k] ? 'sel' : ''}" x="${mx}" y="${my}">${o.hideW ? elabels[k] : w}${!o.hideW && elabels[k] ? ' · ' + elabels[k] : ''}</text>`;
+    if (o.hit) hits += `<line class="hit" data-k="${k}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
   });
+  out += hits;
   Object.entries(g.pos).forEach(([n, [x, y]]) => {
-    out += `<g class="n ${nodes[n] || ''}"><circle cx="${x}" cy="${y}" r="${R}"/><text x="${x}" y="${y + 1}">${n}</text></g>`;
+    out += `<g class="n ${nodes[n] || ''}" data-n="${n}"><circle cx="${x}" cy="${y}" r="${R}"/><text x="${x}" y="${y + 1}">${n}</text></g>`;
     if (labels[n] != null && labels[n] !== '') out += `<text class="nl" x="${x}" y="${y - R - 7}">${labels[n]}</text>`;
   });
-  return `<svg viewBox="0 0 374 250" role="img" aria-label="Grafo de ejemplo">${out}</svg>`;
+  return `<svg viewBox="0 0 374 250" role="img" aria-label="Grafo" class="${o.ia ? 'ia' : ''}">${out}</svg>`;
 }
 const LEGEND = `<div class="legend"><span><i style="border-color:var(--front);background:var(--front-soft)"></i>En espera / tentativo</span><span><i style="border-color:var(--accent);background:var(--accent)"></i>Actual</span><span><i style="border-color:var(--tree);background:var(--tree)"></i>Listo</span><span><i style="border-color:var(--bad);border-style:dashed"></i>Descartada</span></div>`;
 
@@ -371,12 +389,12 @@ function recorder() {
 }
 const qbox = (label, items, hint) => `<div><div class="plabel">${label}${hint ? ` <span class="muted">· ${hint}</span>` : ''}</div><div class="q-items">${items.length ? items.map(x => `<span class="qi">${x}</span>`).join('') : '<span class="empty">vacía</span>'}</div></div>`;
 
-function genBFS(g) {
+function genBFS(g, s0 = 'A') {
   const A = adjOf(g), r = recorder();
-  const q = ['A'], vis = { A: true }, lvl = { A: 0 }, order = [];
-  r.nodes.A = 'front'; r.labels.A = 'nivel 0';
+  const q = [s0], vis = { [s0]: true }, lvl = { [s0]: 0 }, order = [];
+  r.nodes[s0] = 'front'; r.labels[s0] = 'nivel 0';
   const pan = () => qbox('Cola (FIFO)', q, 'sale el de la izquierda') + qbox('Orden de visita', order);
-  r.push('Empezamos en <b>A</b>: lo marcamos como visitado (nivel 0) y lo metemos en la cola.', pan());
+  r.push(`Empezamos en <b>${s0}</b>: lo marcamos como visitado (nivel 0) y lo metemos en la cola.`, pan());
   while (q.length) {
     const u = q.shift(); r.nodes[u] = 'cur';
     const seen = A[u].map(x => x[0]).filter(v => vis[v]);
@@ -389,16 +407,16 @@ function genBFS(g) {
     }
     r.nodes[u] = 'done'; order.push(u);
   }
-  r.push(`Cola vacía, terminamos. Orden BFS: <b>${order.join(' → ')}</b>. Las aristas verdes forman el árbol BFS: cada nodo quedó con la menor cantidad posible de aristas desde A.`, pan());
+  r.push(`Cola vacía, terminamos. Orden BFS: <b>${order.join(' → ')}</b>. Las aristas verdes forman el árbol BFS: cada nodo quedó con la menor cantidad posible de aristas desde ${s0}.`, pan());
   return r.steps;
 }
 
-function genDFS(g) {
+function genDFS(g, s0 = 'A') {
   const A = adjOf(g), r = recorder();
-  const st = ['A'], vis = {}, parent = {}, order = [];
-  r.nodes.A = 'front';
+  const st = [s0], vis = {}, parent = {}, order = [];
+  r.nodes[s0] = 'front';
   const pan = () => qbox('Pila (LIFO)', st, 'el tope es el de la derecha') + qbox('Orden de visita', order);
-  r.push('Metemos <b>A</b> en la pila.', pan());
+  r.push(`Metemos <b>${s0}</b> en la pila.`, pan());
   while (st.length) {
     const u = st.pop();
     if (vis[u]) { r.push(`Sacamos <b>${u}</b> del tope, pero ya estaba visitado: se descarta (aquí se nota el <i>backtracking</i>).`, pan()); continue; }
@@ -409,7 +427,7 @@ function genDFS(g) {
     r.push(`Sacamos <b>${u}</b> del tope y lo visitamos (#${order.length}).${nb.length ? ` Apilamos sus vecinos no visitados (${nb.join(', ')}) al revés, para que el primero alfabético quede arriba.` : ' No tiene vecinos sin visitar: toca retroceder.'}`, pan());
     r.nodes[u] = 'done';
   }
-  r.push(`Pila vacía, terminamos. Orden DFS: <b>${order.join(' → ')}</b>. Fíjate que DFS bajó A → B → C → E antes de volver: va a lo profundo primero.`, pan());
+  r.push(`Pila vacía, terminamos. Orden DFS: <b>${order.join(' → ')}</b>. ${g === G_MAIN ? 'Fíjate que DFS bajó A → B → C → E antes de volver: va a lo profundo primero.' : 'DFS se va a lo profundo antes de retroceder.'}`, pan());
   return r.steps;
 }
 
@@ -417,13 +435,13 @@ function distTable(N, d, prev, fin, extra) {
   return `<div class="tscroll"><table class="t"><tr><th>nodo</th><th>d</th><th>prev</th><th>estado</th></tr>${N.map(n => `<tr class="${fin && fin[n] ? 'fin' : ''}"><td>${n}</td><td>${fmt(d[n])}</td><td>${prev[n] || '–'}</td><td>${fin ? (fin[n] ? '<span class="estatus ok">permanente</span>' : (d[n] < Infinity ? '<span class="estatus cur">tentativo</span>' : '–')) : (extra ? extra(n) : '')}</td></tr>`).join('')}</table></div>`;
 }
 
-function genDijkstra(g, target = 'F') {
+function genDijkstra(g, target = 'F', s0 = 'A') {
   const A = adjOf(g), N = Object.keys(g.pos).sort(), r = recorder();
   const d = {}, prev = {}, fin = {};
   N.forEach(n => { d[n] = Infinity; prev[n] = null; r.labels[n] = '∞'; });
-  d.A = 0; r.labels.A = '0'; r.nodes.A = 'front';
+  d[s0] = 0; r.labels[s0] = '0'; r.nodes[s0] = 'front';
   const pan = () => distTable(N, d, prev, fin);
-  r.push('Inicio: d(A) = 0 y todos los demás en ∞. Nadie tiene etiqueta permanente todavía.', pan());
+  r.push(`Inicio: d(${s0}) = 0 y todos los demás en ∞. Nadie tiene etiqueta permanente todavía.`, pan());
   while (true) {
     let u = null;
     N.forEach(n => { if (!fin[n] && d[n] < Infinity && (u === null || d[n] < d[u])) u = n; });
@@ -447,18 +465,18 @@ function genDijkstra(g, target = 'F') {
   }
   const path = []; let x = target; while (x) { path.unshift(x); x = prev[x]; }
   for (let i = 1; i < path.length; i++) r.edges[ek(g, path[i - 1], path[i])] = 'path';
-  r.push(`Todos etiquetados. Camino de A a ${target}: se reconstruye <b>de atrás hacia adelante</b> con prev: ${path.slice().reverse().join(' ← ')}. Resultado: <b>${path.join(' → ')}</b> con costo <b>${d[target]}</b>. Ojo: ir directo A→B costaba 4, pero A→D→B cuesta 3.`, pan());
+  r.push(`Todos etiquetados. Camino de ${s0} a ${target}: se reconstruye <b>de atrás hacia adelante</b> con prev: ${path.slice().reverse().join(' ← ')}. Resultado: <b>${path.join(' → ')}</b> con costo <b>${d[target]}</b>.${g === G_MAIN ? ' Ojo: ir directo A→B costaba 4, pero A→D→B cuesta 3.' : ''}`, pan());
   return r.steps;
 }
 
-function genBF(g) {
-  const N = ['S', 'A', 'B', 'C', 'D'], r = recorder();
+function genBF(g, src = 'S') {
+  const N = [src].concat(Object.keys(g.pos).filter(n => n !== src).sort()), r = recorder();
   const d = {}, prev = {};
   N.forEach(n => { d[n] = Infinity; prev[n] = null; r.labels[n] = '∞'; });
-  d.S = 0; r.labels.S = '0'; r.nodes.S = 'front';
+  d[src] = 0; r.labels[src] = '0'; r.nodes[src] = 'front';
   const order = g.edges.map(e => `${e[0]}→${e[1]}`).join(', ');
-  const pan = (round) => `<div class="plabel">Ronda ${round} de máximo |V|−1 = 4 · orden de los arcos: ${order}</div>` + distTable(N, d, prev, null, n => n === 'S' ? 'origen' : '');
-  r.push('Inicio: d(S) = 0, el resto ∞. Ojo: Dijkstra aquí fallaría. Fijaría A con 2 (S→A) sin ver que S→B→A cuesta 5 − 4 = 1.', pan(0));
+  const pan = (round) => `<div class="plabel">Ronda ${round} de máximo |V|−1 = ${N.length - 1} · orden de los arcos: ${order}</div>` + distTable(N, d, prev, null, n => n === src ? 'origen' : '');
+  r.push(`Inicio: d(${src}) = 0, el resto ∞.${g === G_BF ? ' Ojo: Dijkstra aquí fallaría. Fijaría A con 2 (S→A) sin ver que S→B→A cuesta 5 − 4 = 1.' : ' Los arcos se revisan siempre en el orden indicado.'}`, pan(0));
   for (let round = 1; round <= N.length - 1; round++) {
     let changed = false;
     for (const [u, v, w] of g.edges) {
@@ -478,11 +496,11 @@ function genBF(g) {
     }
     if (!changed) {
       N.forEach(n => r.nodes[n] = 'done');
-      r.push(`En la ronda ${round} <b>no cambió nada</b>, así que paramos aquí: no hace falta llegar a |V|−1 = 4 rondas. Con este orden de arcos hicieron falta ${round} rondas; con un orden mejor (S→A, S→B, B→A, A→C, C→D, B→D) bastaría una sola pasada más la de verificación.`, pan(round));
+      r.push(`En la ronda ${round} <b>no cambió nada</b>, así que paramos aquí: no hace falta llegar a |V|−1 = ${N.length - 1} rondas.${g === G_BF ? ` Con este orden de arcos hicieron falta ${round} rondas; con un orden mejor (S→A, S→B, B→A, A→C, C→D, B→D) bastaría una sola pasada más la de verificación.` : ''}`, pan(round));
       break;
     }
   }
-  r.push('Resultado: d(A) = 1, d(C) = 2, d(D) = 5. Para detectar un <b>ciclo negativo</b>: si después de |V|−1 rondas todavía se pudiera mejorar algo, habría un ciclo negativo y no existiría camino mínimo.', pan('final'));
+  r.push(`Resultado: ${N.filter(n => n !== src).map(n => `d(${n}) = ${fmt(d[n])}`).join(', ')}. Para detectar un <b>ciclo negativo</b>: si después de |V|−1 rondas todavía se pudiera mejorar algo, habría un ciclo negativo y no existiría camino mínimo.`, pan('final'));
   return r.steps;
 }
 
@@ -491,7 +509,7 @@ function genFloyd(g) {
   const D = N.map(i => N.map(j => i === j ? 0 : Infinity));
   g.edges.forEach(([u, v, w]) => { D[N.indexOf(u)][N.indexOf(v)] = w; });
   const mat = (k, chg) => `<div class="tscroll"><table class="t"><tr><th></th>${N.map((c, j) => `<th class="${j === k ? 'kk' : ''}">${c}</th>`).join('')}</tr>${D.map((row, i) => `<tr><th class="${i === k ? 'kk' : ''}">${N[i]}</th>${row.map((x, j) => `<td class="${chg.has(i + ',' + j) ? 'chg' : ((i === k || j === k) ? 'kk' : '')}">${fmt(x)}</td>`).join('')}</tr>`).join('')}</table></div>`;
-  r.push('Inicialización (k = 0): en cada celda va el peso del arco directo, ∞ si no hay arco y 0 en la diagonal. Este es el mismo grafo de la clase 08.', mat(-1, new Set()));
+  r.push(`Inicialización (k = 0): en cada celda va el peso del arco directo, ∞ si no hay arco y 0 en la diagonal.${g === G_FLOYD ? ' Este es el mismo grafo de la clase 08.' : ''}`, mat(-1, new Set()));
   for (let k = 0; k < n; k++) {
     const chg = new Set(), msgs = [];
     for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
@@ -505,7 +523,7 @@ function genFloyd(g) {
     r.push(`Fase k = ${k + 1}: ¿sale más barato ir de i a j haciendo escala en <b>${N[k]}</b>? Se aplica d[i][j] = min(d[i][j], d[i][${N[k]}] + d[${N[k]}][j]). ${msgs.length ? 'Cambios: <b>' + msgs.join('; ') + '</b>.' : '<b>No hay cambios</b>: ningún camino mejora pasando por ' + N[k] + '.'}`, mat(k, chg));
   }
   r.nodes = {}; N.forEach(x => r.nodes[x] = 'done');
-  r.push('Después de la fase k = 5 la matriz tiene la distancia mínima entre cada par de nodos (∞ = no hay camino). Fila A: 0, 2, 6, 1, 4.', mat(-1, new Set()));
+  r.push(`Después de la fase k = ${n} la matriz tiene la distancia mínima entre cada par de nodos (∞ = no hay camino).${g === G_FLOYD ? ' Fila A: 0, 2, 6, 1, 4.' : ''}`, mat(-1, new Set()));
   return r.steps;
 }
 
@@ -535,12 +553,12 @@ function genKruskal(g, mode = 'min') {
   return r.steps;
 }
 
-function genPrim(g, mode = 'min') {
+function genPrim(g, mode = 'min', s0 = 'A') {
   const N = Object.keys(g.pos).sort(), r = recorder();
-  const inT = { A: true }, chosen = []; let total = 0;
-  r.nodes.A = 'done';
+  const inT = { [s0]: true }, chosen = []; let total = 0;
+  r.nodes[s0] = 'done';
   const pan = (cands) => qbox('En el árbol', N.filter(n => inT[n])) + qbox('Candidatas (salen del árbol hacia afuera)', (cands || []).map(([u, v, w]) => `${u}${v}·${w}`));
-  r.push('Empezamos en <b>A</b>. El subárbol tiene un solo vértice.', pan());
+  r.push(`Empezamos en <b>${s0}</b>. El subárbol tiene un solo vértice.`, pan());
   while (Object.keys(inT).length < N.length) {
     const c = g.edges.filter(([u, v]) => !!inT[u] !== !!inT[v]);
     c.forEach(([u, v]) => r.edges[ek(g, u, v)] = 'try');
@@ -551,7 +569,7 @@ function genPrim(g, mode = 'min') {
     inT[nw] = true; r.edges[ek(g, u, v)] = 'tree'; r.nodes[nw] = 'done'; total += w; chosen.push(best);
     r.push(`La ${mode === 'min' ? 'más barata' : 'más cara'} es <b>${u}–${v} (${w})</b>: la agregamos y <b>${nw}</b> entra al subárbol. Nunca forma ciclo, porque une uno de adentro con uno de afuera.`, pan());
   }
-  r.push(`El subárbol ya contiene todos los vértices. Peso total: <b>${total}</b>, el mismo que con Kruskal${mode === 'min' ? '' : ' en modo máximo'}.`, pan());
+  r.push(`El subárbol ya contiene todos los vértices. Peso total: <b>${total}</b>, el mismo que daría Kruskal${mode === 'min' ? '' : ' en modo máximo'}.`, pan());
   return r.steps;
 }
 
@@ -578,7 +596,7 @@ function genBoruvka(g) {
     });
     r.push(`Agregamos todas esas aristas a la vez (las repetidas cuentan una sola vez) y fusionamos componentes. Quedan ${Object.keys(groups()).length}.`, pan());
   }
-  r.push(`Queda una sola componente en ${round} rondas: es el árbol cobertor mínimo, peso <b>${total}</b>. Mismo árbol que Kruskal y Prim, porque los pesos son todos distintos.`, pan());
+  r.push(`Queda una sola componente en ${round} rondas: es el árbol cobertor mínimo, peso <b>${total}</b>. ${g === G_MAIN ? 'Mismo árbol que Kruskal y Prim, porque los pesos son todos distintos.' : ''}`, pan());
   return r.steps;
 }
 
@@ -808,7 +826,7 @@ let cleanup = null;
 function stats() {
   const best = store.get('quizBest', null), open = store.get('open', {}), mt = store.get('matchBest', null);
   const mastered = Object.values(open).filter(v => v === 'ok').length;
-  return { best, mastered, mt };
+  return { best, mastered, mt, ej: Object.keys(store.get('ej', {})).length };
 }
 
 function viewInicio() {
@@ -822,12 +840,12 @@ function viewInicio() {
       <div class="stats">
         <div class="stat"><div class="n">${s.best ? s.best + '%' : '–'}</div><div class="l">mejor quiz</div></div>
         <div class="stat"><div class="n">${s.mastered}/${OPEN.length}</div><div class="l">preguntas de desarrollo dominadas</div></div>
-        <div class="stat"><div class="n">${s.mt ? s.mt + 's' : '–'}</div><div class="l">mejor tiempo relacionando</div></div>
+        <div class="stat"><div class="n">${s.ej}/${totalEx()}</div><div class="l">ejercicios resueltos</div></div>
       </div>
     </div>
 
     <div class="go-grid">
-      <a class="go" href="#algoritmos"><span class="line" style="background:var(--tree)"></span><span class="t">Algoritmos</span><span class="d">${ALGS.length} temas. Mira cada uno correr paso a paso sobre un grafo.</span></a>
+      <a class="go" href="#algoritmos"><span class="line" style="background:var(--tree)"></span><span class="t">Algoritmos</span><span class="d">${ALGS.length} temas con corrida animada, ejemplo resuelto y ${totalEx()} ejercicios para hacer de cero.</span></a>
       <a class="go" href="#quiz"><span class="line" style="background:var(--accent)"></span><span class="t">Quiz tipo parcial</span><span class="d">${MCQ.length} preguntas de selección y ${OPEN.length} de desarrollo.</span></a>
       <a class="go" href="#relacionar"><span class="line" style="background:#7A4FC4"></span><span class="t">Relacionar</span><span class="d">Une términos con definiciones contra reloj.</span></a>
       <a class="go" href="#glosario"><span class="line" style="background:var(--front)"></span><span class="t">Glosario</span><span class="d">${GLOS.length} definiciones con buscador.</span></a>
@@ -916,6 +934,7 @@ function viewAlgoritmos() {
 }
 
 function player(container, makeSteps, g, opts = {}) {
+  const dopt = { hideW: !!opts.hideW };
   let steps = makeSteps(opts.mode), i = 0, timer = null;
   container.innerHTML = `<div class="player">
     ${opts.modes ? `<div class="row"><span class="plabel">Árbol:</span><div class="toggle" role="group"><button data-m="min" aria-pressed="true">Mínimo</button><button data-m="max" aria-pressed="false">Máximo</button></div></div>` : ''}
@@ -933,7 +952,7 @@ function player(container, makeSteps, g, opts = {}) {
   </div>`;
   const render = () => {
     const s = steps[i];
-    $('.gsvg', container).innerHTML = drawGraph(g, s);
+    $('.gsvg', container).innerHTML = drawGraph(g, s, dopt);
     $('.ptext', container).innerHTML = s.text;
     $('.panel', container).innerHTML = s.panel || '';
     $('.pcount', container).textContent = `Paso ${i + 1} de ${steps.length}`;
@@ -1020,11 +1039,15 @@ function viewAlg(id) {
     ${a.usos ? `<div class="sec"><h3>¿Para qué sirve?</h3><p>${a.usos}</p></div>` : ''}
     ${a.truco ? `<div class="truco"><span>Para recordarlo</span>${a.truco}</div>` : ''}
     ${a.parcial ? `<div class="sec card"><h3><span class="tag orange">Parcial</span> Lo que preguntan</h3>${a.parcial.map(([q, r]) => `<div class="qa"><span class="q">${q}</span><span>${r}</span></div>`).join('')}</div>` : ''}
+    ${practiceSection(a.id)}
     <div class="row"><a class="btn accent" href="#quiz" style="text-decoration:none">Practicar en el quiz</a></div>
   </section>`;
   if (a.special === 'repr') reprWidget($('#repr'));
   if (a.special === 'walk') walkWidget($('#walk'));
-  if (a.anim) cleanup = player($('#pl'), a.anim, a.graph, { modes: a.modes, mode: 'min' });
+  const stops = [];
+  if (a.anim) stops.push(player($('#pl'), a.anim, a.graph, { modes: a.modes, mode: 'min' }));
+  if (KITS[a.id]) { const st2 = mountExample(a.id); if (st2) stops.push(st2); }
+  cleanup = () => stops.forEach(f => f && f());
   window.scrollTo(0, 0);
 }
 
@@ -1176,16 +1199,355 @@ function viewRelacionar() {
   return () => clearInterval(timer);
 }
 
+/* ============ práctica: grafos, solucionadores y ejercicios ============ */
+const UPOS5 = { A: [50, 62], B: [190, 42], C: [330, 72], D: [110, 210], E: [280, 210] };
+const UPOS6 = { A: [40, 125], B: [150, 42], C: [150, 210], D: [262, 42], E: [262, 210], F: [340, 125] };
+const P1 = { directed: false, pos: UPOS5, edges: [['A','B',3],['A','D',6],['B','C',4],['B','D',2],['B','E',7],['C','E',1],['D','E',5]] };
+const P2 = { directed: false, pos: UPOS6, edges: [['A','B',7],['A','C',3],['B','C',1],['B','D',6],['C','E',8],['D','E',4],['D','F',2],['E','F',5],['B','E',9]] };
+const P3 = { directed: false, pos: { A: [40, 62], B: [180, 42], C: [330, 62], D: [60, 210], E: [190, 150], F: [320, 210] },
+  edges: [['A','B',3],['A','D',8],['A','E',9],['B','C',6],['B','E',2],['C','F',1],['D','E',4],['E','F',7],['C','E',5]] };
+const P4 = { directed: false, pos: { A: [40, 125], B: [130, 45], C: [130, 205], D: [232, 45], E: [232, 205], F: [334, 45], G: [334, 205] },
+  edges: [['A','B',1],['A','C',1],['B','D',1],['B','E',1],['C','E',1],['D','F',1],['E','G',1],['F','G',1]] };
+const SQ = { A: [60, 62], B: [314, 62], C: [314, 205], D: [60, 205] };
+const BF1 = { directed: true, pos: { S: [40, 128], A: [180, 42], B: [180, 214], C: [330, 128] }, edges: [['A','C',2],['S','A',4],['S','B',3],['B','A',-2],['B','C',5]] };
+const BPOS = { S: [40, 128], A: [160, 42], B: [160, 214], C: [290, 42], D: [320, 200] };
+const BF2 = { directed: true, pos: BPOS, edges: [['S','A',5],['S','B',2],['B','A',1],['A','C',-3],['B','C',6],['C','D',2],['B','D',4]] };
+const BF3 = { directed: true, pos: BPOS, edges: [['C','D',1],['S','A',6],['S','B',4],['A','C',-2],['B','A',-3],['B','D',5],['A','D',4]] };
+const F1 = { directed: true, pos: SQ, edges: [['A','B',3],['B','C',2],['C','D',1],['D','A',4],['A','C',7]] };
+const F2 = { directed: true, pos: SQ, edges: [['A','B',5],['A','D',2],['D','B',1],['B','C',3],['C','D',6]] };
+const F3 = { directed: true, pos: SQ, edges: [['A','B',2],['B','C',4],['C','A',3],['C','D',-2],['D','A',6]] };
+const W1 = { directed: true, pos: SQ, edges: [['A','B',1],['B','C',1],['C','A',1],['D','C',1]] };
+const W2 = { directed: true, pos: SQ, edges: [['A','B',1],['B','D',1],['D','C',1],['C','B',1]] };
+const W3 = { directed: true, pos: SQ, edges: [['A','C',1],['C','D',1],['B','A',1],['B','D',1]] };
+const RPOS = { 1: [50, 125], 2: [182, 42], 3: [182, 210], 4: [320, 125] };
+const mkR = E => ({ directed: true, pos: RPOS, edges: E.map(([u, v]) => [String(u), String(v), 1]) });
+const R2 = mkR([[1,3],[2,1],[3,2],[3,4],[4,2]]), R3 = mkR([[1,2],[1,3],[2,4],[3,4],[4,1]]), R4 = mkR([[1,2],[1,4],[2,3],[3,1],[4,3],[4,2]]);
+
+const nodesOf = g => Object.keys(g.pos).sort();
+const W = (g, u, v) => { for (const [a, b, w] of g.edges) { if (a === u && b === v) return w; if (!g.directed && a === v && b === u) return w; } return Infinity; };
+function bfsOrder(g, s) { const A = adjOf(g), q = [s], vis = { [s]: 1 }, o = []; while (q.length) { const u = q.shift(); o.push(u); for (const [v] of A[u]) if (!vis[v]) { vis[v] = 1; q.push(v); } } return o; }
+function dfsOrder(g, s) { const A = adjOf(g), o = [], vis = {}; (function go(u) { vis[u] = 1; o.push(u); for (const [v] of A[u]) if (!vis[v]) go(v); })(s); return o; }
+function dijSolve(g, s) { const N = nodesOf(g), A = adjOf(g), d = {}, prev = {}, fin = {}; N.forEach(n => { d[n] = Infinity; prev[n] = null; }); d[s] = 0;
+  for (;;) { let u = null; N.forEach(n => { if (!fin[n] && d[n] < Infinity && (u === null || d[n] < d[u])) u = n; }); if (u === null) break; fin[u] = 1;
+    for (const [v, w] of A[u]) if (!fin[v] && d[u] + w < d[v]) { d[v] = d[u] + w; prev[v] = u; } } return { d, prev }; }
+const pathOf = (prev, t) => { const p = []; let x = t; while (x) { p.unshift(x); x = prev[x]; } return p; };
+function bfSolve(g, s) { const N = nodesOf(g), d = {}, prev = {}; N.forEach(n => { d[n] = Infinity; prev[n] = null; }); d[s] = 0;
+  for (let i = 0; i < N.length - 1; i++) { let ch = false; for (const [u, v, w] of g.edges) if (d[u] + w < d[v]) { d[v] = d[u] + w; prev[v] = u; ch = true; } if (!ch) break; } return { d, prev }; }
+function floydSolve(g) { const N = nodesOf(g), D = N.map(i => N.map(j => i === j ? 0 : W(g, i, j)));
+  for (let k = 0; k < N.length; k++) for (let i = 0; i < N.length; i++) for (let j = 0; j < N.length; j++) if (D[i][k] + D[k][j] < D[i][j]) D[i][j] = D[i][k] + D[k][j]; return D; }
+function warshallSolve(g) { const N = nodesOf(g), R = N.map(i => N.map(j => (i === j || W(g, i, j) < Infinity) ? 1 : 0));
+  for (let k = 0; k < N.length; k++) for (let i = 0; i < N.length; i++) for (let j = 0; j < N.length; j++) if (R[i][k] && R[k][j]) R[i][j] = 1; return R; }
+function dantzigSolve(g) { const N = nodesOf(g), D = [[0]], out = [D.map(r => r.slice())];
+  for (let k = 1; k < N.length; k++) { const nk = N[k]; const col = [], row = [];
+    for (let i = 0; i < k; i++) { let a = Infinity, b = Infinity; for (let j = 0; j < k; j++) { a = Math.min(a, D[i][j] + W(g, N[j], nk)); b = Math.min(b, W(g, nk, N[j]) + D[j][i]); } col.push(a); row.push(b); }
+    for (let i = 0; i < k; i++) D[i].push(col[i]); D.push(row.concat([0]));
+    for (let i = 0; i < k; i++) for (let j = 0; j < k; j++) if (D[i][k] + D[k][j] < D[i][j]) D[i][j] = D[i][k] + D[k][j];
+    out.push(D.map(r => r.slice())); } return out; }
+function kruskalOrder(g, mode) { const N = nodesOf(g), comp = {}; N.forEach((n, i) => comp[n] = i); const E = g.edges.slice().sort((a, b) => mode === 'max' ? b[2] - a[2] : a[2] - b[2]); const o = []; let t = 0;
+  for (const [u, v, w] of E) { if (o.length === N.length - 1) break; if (comp[u] !== comp[v]) { const c = comp[v]; N.forEach(n => { if (comp[n] === c) comp[n] = comp[u]; }); o.push(ek(g, u, v)); t += w; } } return { o, t }; }
+function primOrder(g, mode, s) { const N = nodesOf(g), inT = { [s]: 1 }, o = []; let t = 0;
+  while (o.length < N.length - 1) { const c = g.edges.filter(([u, v]) => !!inT[u] !== !!inT[v]); const b = c.reduce((x, e) => (mode === 'max' ? e[2] > x[2] : e[2] < x[2]) ? e : x); inT[b[0]] = inT[b[1]] = 1; o.push(ek(g, b[0], b[1])); t += b[2]; } return { o, t }; }
+function boruvkaSolve(g) { const N = nodesOf(g), comp = {}; N.forEach((n, i) => comp[n] = i); let rounds = 0, t = 0, first = null;
+  while (new Set(Object.values(comp)).size > 1) { rounds++; const pick = {};
+    new Set(Object.values(comp)).forEach(c => { let b = null; g.edges.forEach(e => { if ((comp[e[0]] === c) !== (comp[e[1]] === c) && (!b || e[2] < b[2])) b = e; }); pick[ek(g, b[0], b[1])] = b; });
+    if (!first) first = Object.keys(pick);
+    Object.values(pick).forEach(([u, v, w]) => { if (comp[u] !== comp[v]) { const c = comp[v]; N.forEach(n => { if (comp[n] === c) comp[n] = comp[u]; }); t += w; } }); }
+  return { first, rounds, t }; }
+
+function genWarshall(g) {
+  const N = nodesOf(g), n = N.length, r = recorder(), R = N.map(i => N.map(j => (i === j || W(g, i, j) < Infinity) ? 1 : 0));
+  const mat = (k, chg) => `<div class="tscroll"><table class="t"><tr><th></th>${N.map((c, j) => `<th class="${j === k ? 'kk' : ''}">${c}</th>`).join('')}</tr>${R.map((row, i) => `<tr><th class="${i === k ? 'kk' : ''}">${N[i]}</th>${row.map((x, j) => `<td class="${chg.has(i + ',' + j) ? 'chg' : ((i === k || j === k) ? 'kk' : '')}">${x}</td>`).join('')}</tr>`).join('')}</table></div>`;
+  r.push('Inicio: R = I ∨ A. Un 1 donde hay arco directo, y 1 en toda la diagonal (cada nodo se alcanza a sí mismo).', mat(-1, new Set()));
+  for (let k = 0; k < n; k++) { const chg = new Set(), m = [];
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) if (!R[i][j] && R[i][k] && R[k][j]) { R[i][j] = 1; chg.add(i + ',' + j); m.push(`${N[i]}→${N[j]}`); }
+    r.nodes = {}; r.nodes[N[k]] = 'cur'; for (let q = 0; q < k; q++) r.nodes[N[q]] = 'done';
+    r.push(`k = ${N[k]}: si i llega a ${N[k]} y ${N[k]} llega a j, entonces i llega a j. ${m.length ? 'Nuevos 1: <b>' + m.join(', ') + '</b>.' : '<b>Sin cambios.</b>'}`, mat(k, chg)); }
+  r.nodes = {}; N.forEach(x => r.nodes[x] = 'done');
+  r.push('Listo: esta es la clausura transitiva. Un 1 en (i, j) significa que existe un camino de i a j.', mat(-1, new Set()));
+  return r.steps;
+}
+function genDantzig(g) {
+  const N = nodesOf(g), r = recorder(), all = dantzigSolve(g);
+  const mat = (D, k, chg) => `<div class="plabel">D${D.length}</div><div class="tscroll"><table class="t"><tr><th></th>${D.map((_, j) => `<th class="${j === k ? 'kk' : ''}">${N[j]}</th>`).join('')}</tr>${D.map((row, i) => `<tr><th class="${i === k ? 'kk' : ''}">${N[i]}</th>${row.map((x, j) => `<td class="${chg.has(i + ',' + j) ? 'chg' : ((i === k || j === k) ? 'kk' : '')}">${fmt(x)}</td>`).join('')}</tr>`).join('')}</table></div>`;
+  r.nodes[N[0]] = 'done';
+  r.push(`D1 solo contiene a ${N[0]}: d(${N[0]},${N[0]}) = 0.`, mat(all[0], -1, new Set()));
+  const D = [[0]];
+  for (let k = 1; k < N.length; k++) {
+    const nk = N[k], col = [], row = [];
+    for (let i = 0; i < k; i++) { let a = Infinity, b = Infinity; for (let j = 0; j < k; j++) { a = Math.min(a, D[i][j] + W(g, N[j], nk)); b = Math.min(b, W(g, nk, N[j]) + D[j][i]); } col.push(a); row.push(b); }
+    for (let i = 0; i < k; i++) D[i].push(col[i]); D.push(row.concat([0]));
+    r.nodes = {}; r.nodes[nk] = 'cur'; for (let q = 0; q < k; q++) r.nodes[N[q]] = 'done';
+    const nc = new Set(); for (let i = 0; i <= k; i++) { nc.add(i + ',' + k); nc.add(k + ',' + i); }
+    r.push(`Entra <b>${nk}</b>. Paso (a): su fila y su columna. d(i,${nk}) = min_j { d(i,j) + w(j,${nk}) } y d(${nk},i) = min_j { w(${nk},j) + d(j,i) }, usando la matriz anterior.`, mat(D.map(x => x.slice()), k, nc));
+    const chg = new Set(), m = [];
+    for (let i = 0; i < k; i++) for (let j = 0; j < k; j++) if (D[i][k] + D[k][j] < D[i][j]) { m.push(`d(${N[i]},${N[j]}): ${fmt(D[i][j])} → ${D[i][k] + D[k][j]}`); D[i][j] = D[i][k] + D[k][j]; chg.add(i + ',' + j); }
+    r.push(`Paso (b): ¿los viejos mejoran entre sí haciendo escala en ${nk}? ${m.length ? '<b>' + m.join('; ') + '</b>.' : '<b>Ninguno mejora.</b>'} Este paso necesita el (a), por eso no se pueden hacer en paralelo.`, mat(D.map(x => x.slice()), k, chg));
+  }
+  r.nodes = {}; N.forEach(x => r.nodes[x] = 'done');
+  r.push(`D${N.length} es la matriz final de distancias mínimas. Da lo mismo que Floyd-Warshall.`, mat(D, -1, new Set()));
+  return r.steps;
+}
+
+/* transporte */
+const T1 = { s: [5, 4], d: [3, 6], c: [[2, 4], [3, 1]] };
+const T2 = { s: [6, 4], d: [3, 4, 3], c: [[3, 1, 5], [2, 4, 1]] };
+const T3 = { s: [5, 5], d: [4, 2, 4], c: [[4, 6, 2], [3, 2, 5]] };
+function transSolve(T) { const n = T.d.length; let best = null;
+  const rec = (j, x) => { if (j === n) { if (x.reduce((a, b) => a + b, 0) !== T.s[0]) return; const y = T.d.map((dj, k) => dj - x[k]); if (y.reduce((a, b) => a + b, 0) !== T.s[1]) return;
+    const c = x.reduce((a, v, k) => a + v * T.c[0][k], 0) + y.reduce((a, v, k) => a + v * T.c[1][k], 0); if (!best || c < best.c) best = { c, f: [x.slice(), y] }; return; }
+    for (let v = 0; v <= T.d[j]; v++) { x.push(v); rec(j + 1, x); x.pop(); } };
+  rec(0, []); return best; }
+function transGraph(T) { const n = T.d.length, pos = { O1: [62, 70], O2: [62, 190] }, edges = [];
+  T.d.forEach((_, j) => pos['D' + (j + 1)] = [312, n === 2 ? [70, 190][j] : [40, 125, 210][j]]);
+  [0, 1].forEach(i => T.d.forEach((_, j) => edges.push(['O' + (i + 1), 'D' + (j + 1), T.c[i][j]]))); return { directed: true, pos, edges }; }
+const transTable = T => `<div class="tscroll"><table class="t"><tr><th>costo</th>${T.d.map((_, j) => `<th>D${j + 1}</th>`).join('')}<th>oferta</th></tr>${[0, 1].map(i => `<tr><th>O${i + 1}</th>${T.c[i].map(c => `<td>${c}</td>`).join('')}<td><b>${T.s[i]}</b></td></tr>`).join('')}<tr><th>demanda</th>${T.d.map(d => `<td><b>${d}</b></td>`).join('')}<td></td></tr></table></div>`;
+
+/* normalización y kits */
+const norm = v => { let s = String(v == null ? '' : v).trim().toLowerCase().replace(/\s+/g, '').replace(/−/g, '-').replace(/^\+/, ''); if (['∞', 'inf', 'infinito', 'i', 'oo'].includes(s)) s = 'inf'; return s; };
+const numStr = x => x === Infinity ? 'inf' : String(x);
+const parseNum = s => { s = norm(s).replace(',', '.'); if (s.includes('/')) { const [a, b] = s.split('/').map(Number); return b ? a / b : NaN; } if (s.endsWith('%')) return parseFloat(s) / 100; return s === '' ? NaN : Number(s); };
+const edgeName = k => k.replace('-', '–').replace('>', '→');
+const matAns = (N, D) => ({ rows: N, cols: N, ans: D.map(r => r.map(numStr)) });
+
+const KITS = {
+  bfs: { hideW: true,
+    ex: { g: P1, s: 'A' }, list: [{ g: P2, s: 'A' }, { g: P4, s: 'A' }, { g: P3, s: 'C' }],
+    st: x => `Recorre el grafo con <b>BFS</b> desde <b>${x.s}</b>. Los vecinos se revisan en orden alfabético. Toca los nodos en el orden en que salen de la cola.`,
+    parts: x => [{ type: 'nodeOrder', label: 'Orden de visita', ans: bfsOrder(x.g, x.s) }], steps: x => genBFS(x.g, x.s) },
+  dfs: { hideW: true,
+    ex: { g: P1, s: 'A' }, list: [{ g: P2, s: 'A' }, { g: P4, s: 'A' }, { g: P3, s: 'E' }],
+    st: x => `Recorre el grafo con <b>DFS</b> desde <b>${x.s}</b>. Los vecinos se revisan en orden alfabético. Toca los nodos en el orden en que se visitan.`,
+    parts: x => [{ type: 'nodeOrder', label: 'Orden de visita', ans: dfsOrder(x.g, x.s) }], steps: x => genDFS(x.g, x.s) },
+  alc: { hideW: true,
+    ex: { g: W1 }, list: [{ g: W2 }, { g: W3 }],
+    st: x => `Calcula la <b>clausura transitiva</b> (R = I ∨ A ∨ A² ∨ …) del grafo dirigido con Warshall. Toca cada celda para cambiarla entre 0 y 1.`,
+    parts: x => [{ type: 'matrix', label: 'Matriz de alcanzabilidad R', toggle: ['0', '1'], ...matAns(nodesOf(x.g), warshallSolve(x.g)) }], steps: x => genWarshall(x.g) },
+  dijkstra: {
+    ex: { g: P1, s: 'A', t: 'E' }, list: [{ g: P2, s: 'A', t: 'F' }, { g: P3, s: 'A', t: 'F' }, { g: P2, s: 'D', t: 'A' }],
+    st: x => `Usa <b>Dijkstra</b> para encontrar el camino más corto de <b>${x.s}</b> a <b>${x.t}</b>. Escribe la distancia final de cada nodo y el camino.`,
+    parts: x => { const r = dijSolve(x.g, x.s); return [{ type: 'nodeValues', label: 'Distancia final d(·) desde ' + x.s, ans: r.d }, { type: 'text', label: `Camino de ${x.s} a ${x.t} (ej.: ${x.s}-B-${x.t})`, ans: pathOf(r.prev, x.t).join('') }]; },
+    steps: x => genDijkstra(x.g, x.t, x.s) },
+  bf: {
+    ex: { g: BF1, s: 'S' }, list: [{ g: BF2, s: 'S' }, { g: BF3, s: 'S' }],
+    st: x => `Aplica <b>Bellman-Ford</b> desde <b>${x.s}</b>, revisando los arcos en este orden: ${x.g.edges.map(e => `${e[0]}→${e[1]}`).join(', ')}. Escribe la distancia final de cada nodo.`,
+    parts: x => [{ type: 'nodeValues', label: 'Distancia final d(·) desde ' + x.s, ans: bfSolve(x.g, x.s).d }], steps: x => genBF(x.g, x.s) },
+  floyd: {
+    ex: { g: F1 }, list: [{ g: F2 }, { g: F3 }, { g: G_FLOYD }],
+    st: x => `Aplica <b>Floyd-Warshall</b> y llena la matriz final de distancias mínimas. Escribe <b>inf</b> (o ∞) donde no haya camino.`,
+    parts: x => [{ type: 'matrix', label: 'Matriz final D', ...matAns(nodesOf(x.g), floydSolve(x.g)) }], steps: x => genFloyd(x.g) },
+  dantzig: {
+    ex: { g: F2 }, list: [{ g: F1 }, { g: F3 }],
+    st: x => `Aplica el <b>método de Dantzig</b> agregando los nodos en orden alfabético. Llena D3 (solo A, B y C) y la matriz final D4. Escribe <b>inf</b> donde no haya camino.`,
+    parts: x => { const all = dantzigSolve(x.g), N = nodesOf(x.g); return [{ type: 'matrix', label: 'D3 (nodos A, B, C)', ...matAns(N.slice(0, 3), all[2]) }, { type: 'matrix', label: 'D4 (final)', ...matAns(N, all[3]) }]; },
+    steps: x => genDantzig(x.g) },
+  kruskal: { modes: true,
+    ex: { g: P1, m: 'min' }, list: [{ g: P2, m: 'min' }, { g: P3, m: 'max' }, { g: P1, m: 'max' }],
+    st: x => `Construye el árbol cobertor <b>${x.m === 'min' ? 'MÍNIMO' : 'MÁXIMO'}</b> con <b>Kruskal</b>. Toca las aristas en el orden en que las agregas y escribe el peso total.`,
+    parts: x => { const r = kruskalOrder(x.g, x.m); return [{ type: 'edgeOrder', label: 'Aristas en orden', ans: r.o }, { type: 'number', label: 'Peso total del árbol', ans: r.t }]; },
+    steps: x => genKruskal(x.g, x.m) },
+  prim: { modes: true,
+    ex: { g: P1, m: 'min', s: 'A' }, list: [{ g: P2, m: 'min', s: 'A' }, { g: P3, m: 'min', s: 'D' }, { g: P2, m: 'max', s: 'F' }],
+    st: x => `Construye el árbol cobertor <b>${x.m === 'min' ? 'MÍNIMO' : 'MÁXIMO'}</b> con <b>Prim</b> empezando en <b>${x.s}</b>. Toca las aristas en el orden en que entran y escribe el peso total.`,
+    parts: x => { const r = primOrder(x.g, x.m, x.s); return [{ type: 'edgeOrder', label: 'Aristas en orden', ans: r.o }, { type: 'number', label: 'Peso total del árbol', ans: r.t }]; },
+    steps: x => genPrim(x.g, x.m, x.s) },
+  boruvka: {
+    ex: { g: P1 }, list: [{ g: P2 }, { g: P3 }],
+    st: x => `Aplica <b>Boruvka</b>. Toca las aristas que se agregan en la <b>ronda 1</b> (cada componente elige su arista más barata). Luego escribe cuántas rondas hacen falta y el peso total.`,
+    parts: x => { const r = boruvkaSolve(x.g); return [{ type: 'edgeSet', label: 'Aristas de la ronda 1', ans: r.first }, { type: 'number', label: 'Número de rondas', ans: r.rounds }, { type: 'number', label: 'Peso total del árbol', ans: r.t }]; },
+    steps: x => genBoruvka(x.g) },
+  repr: { hideW: true,
+    ex: null, list: [{ g: R2, k: 'adj' }, { g: R3, k: 'inc' }, { g: R4, k: 'star' }],
+    st: x => ({ adj: 'Llena la <b>matriz de adyacencia</b> del grafo dirigido. Toca cada celda para cambiarla entre 0 y 1.', inc: 'Llena la <b>matriz de incidencia</b> del grafo dirigido. Toca cada celda: 0 → +1 → −1. Las columnas son los arcos en el orden indicado.', star: 'Arma la <b>estructura estrella (forward star)</b>: los arcos ordenados por origen (y por destino si empatan) y el arreglo de punteros, empezando en 1.' })[x.k],
+    parts: x => { const N = nodesOf(x.g), E = x.g.edges.map(e => [e[0], e[1]]);
+      if (x.k === 'adj') return [{ type: 'matrix', label: 'Matriz de adyacencia', toggle: ['0', '1'], rows: N, cols: N, ans: N.map(i => N.map(j => E.some(e => e[0] === i && e[1] === j) ? '1' : '0')) }];
+      if (x.k === 'inc') return [{ type: 'matrix', label: 'Matriz de incidencia', toggle: ['0', '+1', '−1'], rows: N, cols: E.map((e, k) => `e${k + 1}<br>${e[0]}→${e[1]}`), ans: N.map(i => E.map(e => e[0] === i ? '1' : e[1] === i ? '-1' : '0')) }];
+      const S = E.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]), ptr = []; let p = 1; N.forEach(n => { ptr.push(String(p)); p += S.filter(e => e[0] === n).length; }); ptr.push(String(p));
+      return [{ type: 'matrix', label: 'Punteros', rows: ['ptr'], cols: N.concat(['fin']), ans: [ptr] }, { type: 'matrix', label: 'Arcos (destinos)', rows: ['arco'], cols: S.map((_, k) => String(k + 1)), ans: [S.map(e => e[1])] }]; } },
+  flujo: {
+    ex: { T: T1 }, list: [{ T: T2 }, { T: T3 }],
+    st: x => `Problema de transporte: envía desde los orígenes O todo lo que piden los destinos D al <b>menor costo total</b>. La tabla da el costo por unidad.${transTable(x.T)}`,
+    parts: x => { const b = transSolve(x.T); return [{ type: 'flow', label: 'Unidades a enviar f(Oi, Dj)', T: x.T, opt: b }, { type: 'number', label: 'Costo total mínimo', ans: b.c }]; },
+    graph: x => transGraph(x.T) },
+  borracho: { hideW: true,
+    ex: null, list: [{ q: 'El borracho está en <b>D</b>. ¿Cuál es la probabilidad de que en el siguiente paso vaya a <b>E</b>?', a: 1 / 3, h: 'D tiene 3 vecinos: A, B y E.' },
+      { q: 'Empieza en <b>A</b>. ¿Cuál es la probabilidad de estar en <b>C</b> después de exactamente 2 pasos?', a: 1 / 8, h: 'Desde A solo se llega a C pasando por B. Multiplica P(A→B) por P(B→C).' },
+      { q: 'A la larga, ¿qué fracción del tiempo pasa en <b>B</b>? (En un grafo conexo no bipartito es grado(B) / 2m.)', a: 2 / 7, h: 'Suma los grados de todos los nodos (eso es 2m) y divide el grado de B entre ese total.' }],
+    st: x => `Grafo de la práctica (sin pesos). ${x.q} Puedes escribir una fracción como 1/4.`,
+    parts: x => [{ type: 'number', label: 'Probabilidad', ans: x.a, hint: x.h }], graph: () => P1 },
+};
+
+/* ejemplos resueltos sin animación */
+const STATIC_EX = {
+  repr: () => `<p>Ejemplo resuelto: es el grafo de la clase 02 que está arriba. Toca cada representación para ver cómo queda.</p>`,
+  flujo: () => { const b = transSolve(T1); return `<p>${KITS.flujo.st({ T: T1 })}</p><div class="gwrap">${drawGraph(transGraph(T1))}</div>
+    <ol class="steps"><li><span>Oferta total 5 + 4 = 9 = demanda total 3 + 6. Está balanceado.</span></li><li><span>La ruta más barata es O2→D2 (costo 1): mandamos las 4 unidades de O2 ahí.</span></li><li><span>D2 todavía pide 2: salen de O1 (costo 4). D1 pide 3: salen de O1 (costo 2). O1 envía 2 + 3 = 5, toda su oferta.</span></li><li><span>Costo: 3·2 + 2·4 + 4·1 = <b>${b.c}</b>. Probando cualquier otro reparto factible, sale más caro.</span></li></ol>`; },
+  borracho: () => `<p>En el grafo de arriba (A–F), el borracho está en <b>A</b>, que tiene 2 vecinos (B y D).</p><ol class="steps"><li><span>P(A→B) = 1/2, porque A tiene 2 vecinos.</span></li><li><span>B tiene 4 vecinos (A, C, D, E): P(B→C) = 1/4.</span></li><li><span>P(estar en C después de 2 pasos desde A) = P(A→B)·P(B→C) = 1/2 · 1/4 = <b>1/8</b>. A→D→C no existe porque D no es vecino de C.</span></li><li><span>A la larga, la fracción del tiempo en un nodo es grado / 2m. Aquí 2m = 18, así que B (grado 4) recibe 4/18 = 2/9.</span></li></ol>`,
+};
+
+const exKey = (alg, n) => alg + '-' + n;
+const solvedSet = () => store.get('ej', {});
+const totalEx = () => Object.values(KITS).reduce((a, k) => a + k.list.length, 0);
+
+function practiceSection(alg) {
+  const kit = KITS[alg]; if (!kit) return '';
+  const sv = solvedSet();
+  return `<div class="sec"><h3>Practica</h3>
+    ${kit.ex || STATIC_EX[alg] ? `<div class="card stack"><div class="row" style="justify-content:space-between"><b>Ejemplo resuelto</b><span class="tag">paso a paso</span></div><div id="exsol"></div></div>` : ''}
+    <div class="exlist">${kit.list.map((_, i) => `<a class="alg-item" href="#ej-${alg}-${i + 1}"><span class="stn" style="${sv[exKey(alg, i + 1)] ? 'background:var(--good);border-color:var(--good)' : ''}"></span><span><span class="nm">Ejercicio ${i + 1}</span><br><span class="ds">${sv[exKey(alg, i + 1)] ? 'Resuelto' : 'Hazlo de cero'}</span></span><span class="ar">›</span></a>`).join('')}</div></div>`;
+}
+function mountExample(alg) {
+  const kit = KITS[alg], el = $('#exsol'); if (!el) return null;
+  if (STATIC_EX[alg]) { el.innerHTML = STATIC_EX[alg](); return null; }
+  const x = kit.ex;
+  el.innerHTML = `<p>${kit.st(x).replace(/Toca[^.]*\./g, '').replace(/Escribe[^.]*\./g, '').replace(/Llena[^.]*\./g, '')}</p><div class="exp-pl"></div><div class="exp ok"><b>Respuesta</b>${answerText(kit.parts(x), kit)}</div>`;
+  return player($('.exp-pl', el), () => kit.steps(x), x.g, { hideW: kit.hideW });
+}
+function answerText(parts) {
+  return parts.map(p => {
+    if (p.type === 'nodeOrder') return `${p.label}: <b>${p.ans.join(' → ')}</b>`;
+    if (p.type === 'edgeOrder') return `${p.label}: <b>${p.ans.map(edgeName).join(', ')}</b>`;
+    if (p.type === 'edgeSet') return `${p.label}: <b>${p.ans.map(edgeName).join(', ')}</b>`;
+    if (p.type === 'nodeValues') return `${p.label}: <b>${Object.entries(p.ans).map(([k, v]) => `${k}=${fmt(v)}`).join(', ')}</b>`;
+    if (p.type === 'text') return `${p.label.replace(/ \(ej.*\)/, '')}: <b>${p.ans.split('').join(' → ')}</b>`;
+    if (p.type === 'number') return `${p.label}: <b>${Number.isInteger(p.ans) ? p.ans : (+p.ans.toFixed(4))}</b>`;
+    if (p.type === 'flow') return `${p.label}: <b>${p.opt.f.map((r, i) => r.map((v, j) => v ? `O${i + 1}→D${j + 1} = ${v}` : '').filter(Boolean).join(', ')).join(', ')}</b>`;
+    if (p.type === 'matrix') return `${p.label}:<div class="tscroll"><table class="t"><tr><th></th>${p.cols.map(c => `<th>${c}</th>`).join('')}</tr>${p.rows.map((r, i) => `<tr><th>${r}</th>${p.ans[i].map(v => `<td>${v === 'inf' ? '∞' : v}</td>`).join('')}</tr>`).join('')}</table></div>`;
+    return '';
+  }).join('<br>');
+}
+
+function viewEx(alg, n) {
+  const kit = KITS[alg], x = kit && kit.list[n - 1], a = ALGS.find(q => q.id === alg);
+  if (!x) { location.hash = '#algoritmos'; return; }
+  const parts = kit.parts(x), g = kit.graph ? kit.graph(x) : x.g;
+  const sel = parts.find(p => ['nodeOrder', 'edgeOrder', 'edgeSet'].includes(p.type));
+  const state = parts.map(p => p.type === 'matrix' ? p.ans.map(r => r.map(() => p.toggle ? p.toggle[0] : '')) : p.type === 'flow' ? p.T.c.map(r => r.map(() => '')) : (['nodeOrder', 'edgeOrder', 'edgeSet'].includes(p.type) ? [] : p.type === 'nodeValues' ? {} : ''));
+  let stopPl = null, hints = 0;
+  app.innerHTML = `<section class="stack-lg" style="--c:${LINES[a.cat]}">
+    <div class="stack"><button class="back" onclick="location.hash='#alg-${alg}'">‹ ${a.name}</button>
+      <div class="line-head"><span class="eyebrow">Ejercicio ${n} de ${kit.list.length}</span><span class="bar"></span></div>
+      <div>${kit.st(x)}</div></div>
+    <div class="gwrap" id="exg"></div>
+    <div class="stack" id="parts"></div>
+    <div class="row"><button class="btn primary" id="chk">Comprobar</button><button class="btn ghost" id="hint">Pista</button><button class="btn ghost" id="sol">Ver solución</button></div>
+    <div id="fb"></div>
+    <div id="solbox"></div>
+    <div class="row">${n > 1 ? `<a class="btn ghost" style="text-decoration:none" href="#ej-${alg}-${n - 1}">‹ Anterior</a>` : ''}${n < kit.list.length ? `<a class="btn ghost" style="text-decoration:none" href="#ej-${alg}-${n + 1}">Siguiente ejercicio ›</a>` : `<a class="btn ghost" style="text-decoration:none" href="#alg-${alg}">Volver al algoritmo</a>`}</div>
+  </section>`;
+  const si = parts.indexOf(sel);
+  const drawG = () => {
+    const st = { nodes: {}, edges: {}, labels: {}, elabels: {} };
+    if (sel) {
+      const seq = state[si];
+      if (sel.type === 'nodeOrder') seq.forEach((v, i) => { st.nodes[v] = 'done'; st.labels[v] = '#' + (i + 1); });
+      else seq.forEach((k, i) => { st.edges[k] = 'tree'; if (sel.type === 'edgeOrder') st.elabels[k] = '#' + (i + 1); });
+    }
+    $('#exg').innerHTML = drawGraph(g, st, { hideW: kit.hideW, hit: sel && sel.type !== 'nodeOrder', ia: !!sel });
+  };
+  const partHtml = (p, i) => {
+    let body = '';
+    if (['nodeOrder', 'edgeOrder', 'edgeSet'].includes(p.type)) {
+      const seq = state[i];
+      body = `<p class="muted">${p.type === 'nodeOrder' ? 'Toca los nodos en el grafo.' : 'Toca las aristas en el grafo.'}</p><div class="q-items">${seq.length ? seq.map((v, k) => `<span class="qi">${p.type === 'edgeSet' ? '' : (k + 1) + '. '}${p.type === 'nodeOrder' ? v : edgeName(v)}</span>`).join('') : '<span class="empty">nada seleccionado</span>'}</div><div class="row"><button class="btn ghost" data-undo="${i}">Deshacer</button><button class="btn ghost" data-clear="${i}">Borrar todo</button></div>`;
+    } else if (p.type === 'nodeValues') {
+      body = `<div class="nvals">${Object.keys(p.ans).map(k => `<label class="nv"><span>d(${k})</span><input id="nv-${i}-${k}" data-p="${i}" data-k="${k}" inputmode="text" autocomplete="off" value="${esc(state[i][k] || '')}"></label>`).join('')}</div>`;
+    } else if (p.type === 'text' || p.type === 'number') {
+      body = `<input class="search" id="tx-${i}" data-p="${i}" inputmode="${p.type === 'number' ? 'decimal' : 'text'}" autocomplete="off" value="${esc(state[i])}">`;
+    } else if (p.type === 'matrix' || p.type === 'flow') {
+      const rows = p.type === 'flow' ? ['O1', 'O2'] : p.rows, cols = p.type === 'flow' ? p.T.d.map((_, j) => 'D' + (j + 1)) : p.cols;
+      body = `<div class="tscroll"><table class="t mx"><tr><th></th>${cols.map(c => `<th>${c}</th>`).join('')}</tr>${rows.map((r, a) => `<tr><th>${r}</th>${cols.map((_, b) => p.toggle ? `<td><button class="cell" id="cl-${i}-${a}-${b}" data-p="${i}" data-a="${a}" data-b="${b}">${state[i][a][b]}</button></td>` : `<td><input class="cin" id="ci-${i}-${a}-${b}" data-p="${i}" data-a="${a}" data-b="${b}" autocomplete="off" value="${esc(state[i][a][b])}"></td>`).join('')}</tr>`).join('')}</table></div>`;
+    }
+    return `<div class="card stack part" id="part-${i}"><div class="plabel">${p.label}</div>${body}<div class="pfb" id="pfb-${i}"></div></div>`;
+  };
+  const renderParts = () => {
+    $('#parts').innerHTML = parts.map(partHtml).join('');
+    $$('[data-undo]').forEach(b => b.onclick = () => { state[+b.dataset.undo].pop(); renderParts(); drawG(); });
+    $$('[data-clear]').forEach(b => b.onclick = () => { state[+b.dataset.clear].length = 0; renderParts(); drawG(); });
+    $$('.nvals input').forEach(inp => inp.oninput = () => { state[+inp.dataset.p][inp.dataset.k] = inp.value; });
+    $$('#parts input.search').forEach(inp => inp.oninput = () => { state[+inp.dataset.p] = inp.value; });
+    $$('#parts input.cin').forEach(inp => inp.oninput = () => { state[+inp.dataset.p][+inp.dataset.a][+inp.dataset.b] = inp.value; });
+    $$('#parts button.cell').forEach(b => b.onclick = () => { const p = parts[+b.dataset.p], cur = state[+b.dataset.p][+b.dataset.a][+b.dataset.b]; const nx = p.toggle[(p.toggle.indexOf(cur) + 1) % p.toggle.length]; state[+b.dataset.p][+b.dataset.a][+b.dataset.b] = nx; b.textContent = nx; b.classList.toggle('on', nx !== '0'); b.classList.remove('bad'); });
+    $$('#parts button.cell').forEach(b => b.classList.toggle('on', b.textContent !== '0'));
+  };
+  $('#exg').onclick = e => {
+    if (!sel) return;
+    const seq = state[si];
+    if (sel.type === 'nodeOrder') { const n = e.target.closest('[data-n]'); if (!n) return; const v = n.dataset.n; if (!seq.includes(v)) seq.push(v); }
+    else { const h = e.target.closest('[data-k]'); if (!h) return; const k = h.dataset.k; const ix = seq.indexOf(k); if (ix >= 0) { if (sel.type === 'edgeSet') seq.splice(ix, 1); } else seq.push(k); }
+    renderParts(); drawG(); $('#fb').innerHTML = '';
+  };
+  const check = () => {
+    let allOk = true;
+    parts.forEach((p, i) => {
+      let ok = false, msg = '';
+      if (p.type === 'nodeOrder' || p.type === 'edgeOrder') {
+        const s = state[i]; let k = 0; while (k < s.length && k < p.ans.length && s[k] === p.ans[k]) k++;
+        ok = k === p.ans.length && s.length === p.ans.length;
+        msg = ok ? 'Correcto.' : s.length === 0 ? 'Todavía no seleccionas nada.' : k === s.length ? `Los ${k} que llevas están bien. Faltan ${p.ans.length - k}.` : k === 0 ? 'El #1 ya no es el correcto. Vuelve a empezar desde ahí.' : `Los primeros ${k} están bien. Revisa a partir del #${k + 1}.`;
+      } else if (p.type === 'edgeSet') {
+        const s = new Set(state[i]), a = new Set(p.ans); const good = [...s].filter(x => a.has(x)).length;
+        ok = s.size === a.size && good === a.size; msg = ok ? 'Correcto.' : `Tienes ${good} de ${a.size} bien${s.size > good ? ` y ${s.size - good} que no van` : ''}.`;
+      } else if (p.type === 'nodeValues') {
+        let bad = 0; Object.entries(p.ans).forEach(([k, v]) => { const el = $(`#nv-${i}-${k}`); const g2 = norm(state[i][k]) === numStr(v); el.classList.toggle('bad', !g2); el.classList.toggle('good', g2); if (!g2) bad++; });
+        ok = !bad; msg = ok ? 'Correcto.' : `${bad} valor${bad > 1 ? 'es' : ''} por revisar (en rojo).`;
+      } else if (p.type === 'text') {
+        ok = norm(state[i]).replace(/[^a-z0-9]/g, '') === p.ans.toLowerCase(); msg = ok ? 'Correcto.' : 'Ese no es el camino más corto. Recuerda reconstruirlo con prev, de atrás hacia adelante.';
+      } else if (p.type === 'number') {
+        const v = parseNum(state[i]); ok = Math.abs(v - p.ans) < 1e-3; msg = ok ? 'Correcto.' : isNaN(v) ? 'Escribe un número.' : 'No es ese valor.';
+      } else if (p.type === 'matrix') {
+        let bad = 0; p.ans.forEach((r, a) => r.forEach((v, b) => { const el = $(p.toggle ? `#cl-${i}-${a}-${b}` : `#ci-${i}-${a}-${b}`); const g2 = norm(state[i][a][b]) === norm(v); el.classList.toggle('bad', !g2); if (!p.toggle) el.classList.toggle('good', g2); if (!g2) bad++; }));
+        ok = !bad; msg = ok ? 'Correcto.' : `${bad} celda${bad > 1 ? 's' : ''} por revisar (en rojo).`;
+      } else if (p.type === 'flow') {
+        const F = state[i].map(r => r.map(v => v === '' ? 0 : Number(norm(v)))), T = p.T;
+        const okNum = F.every(r => r.every(v => Number.isInteger(v) && v >= 0));
+        const rowsOk = F.every((r, a) => r.reduce((x, y) => x + y, 0) === T.s[a]), colsOk = T.d.every((d, b) => F[0][b] + F[1][b] === d);
+        const cost = F.reduce((x, r, a) => x + r.reduce((y, v, b) => y + v * T.c[a][b], 0), 0);
+        ok = okNum && rowsOk && colsOk && cost === p.opt.c;
+        msg = !okNum ? 'Usa enteros mayores o iguales a 0.' : !rowsOk ? 'Cada origen debe enviar exactamente su oferta.' : !colsOk ? 'Cada destino debe recibir exactamente su demanda.' : ok ? 'Correcto: es factible y de costo mínimo.' : `Es factible, pero cuesta ${cost}. Se puede más barato.`;
+      }
+      $('#pfb-' + i).innerHTML = `<span class="estatus ${ok ? 'ok' : 'no'}">${msg}</span>`;
+      if (!ok) allOk = false;
+    });
+    if (allOk) {
+      const sv = solvedSet(); sv[exKey(alg, n)] = true; store.set('ej', sv);
+      $('#fb').innerHTML = `<div class="exp ok"><b>¡Resuelto!</b>${n < kit.list.length ? 'Pasa al siguiente ejercicio.' : 'Terminaste los ejercicios de este algoritmo.'}</div>`;
+    } else $('#fb').innerHTML = `<div class="exp ko"><b>Todavía no.</b>Revisa las partes marcadas. Si te trabas, pide una pista.</div>`;
+  };
+  const hint = () => {
+    hints++;
+    const p = parts[Math.min(hints - 1, parts.length - 1)];
+    let h = '';
+    if (p.type === 'nodeOrder') h = `Empieza así: <b>${p.ans.slice(0, Math.min(hints + 1, p.ans.length - 1)).join(' → ')} → …</b>`;
+    else if (p.type === 'edgeOrder') h = `La primera arista es <b>${edgeName(p.ans[0])}</b>${hints > 1 ? `, la segunda <b>${edgeName(p.ans[1])}</b>` : ''}.`;
+    else if (p.type === 'edgeSet') h = `Una de ellas es <b>${edgeName(p.ans[0])}</b>. Recorre cada nodo y busca su arista más barata.`;
+    else if (p.type === 'nodeValues') { const e = Object.entries(p.ans).filter(([, v]) => v !== 0); const [k, v] = e[Math.min(hints - 1, e.length - 1)]; h = `d(${k}) = <b>${fmt(v)}</b>. El origen siempre vale 0.`; }
+    else if (p.type === 'text') h = `El camino empieza en ${p.ans[0]} y termina en ${p.ans[p.ans.length - 1]}; tiene ${p.ans.length - 1} aristas.`;
+    else if (p.type === 'number') h = p.hint || 'Suma los pesos de las aristas que elegiste.';
+    else if (p.type === 'matrix') { const cells = []; p.ans.forEach((r, a) => r.forEach((v, b) => { if (norm(v) !== '0' && norm(v) !== 'inf' && a !== b) cells.push([a, b, v]); })); const c = cells[Math.min(hints - 1, cells.length - 1)] || [0, 0, p.ans[0][0]]; h = `${p.rows[c[0]]}, ${String(p.cols[c[1]]).replace(/<br>.*/, '')} = <b>${c[2] === 'inf' ? '∞' : c[2]}</b>.${p.toggle ? '' : ' Escribe inf donde no hay camino.'}`; }
+    else if (p.type === 'flow') h = 'Empieza llenando la ruta más barata de toda la tabla con todo lo que puedas.';
+    $('#fb').innerHTML = `<div class="ojo"><b>Pista ${hints}</b>${h}</div>`;
+  };
+  $('#chk').onclick = check; $('#hint').onclick = hint;
+  $('#sol').onclick = () => {
+    $('#solbox').innerHTML = `<div class="card stack"><b>Solución</b><div>${answerText(parts)}</div>${kit.steps ? '<div id="solpl"></div>' : ''}</div>`;
+    if (kit.steps) stopPl = player($('#solpl'), () => kit.steps(x), x.g, { hideW: kit.hideW });
+    $('#solbox').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  renderParts(); drawG(); window.scrollTo(0, 0);
+  return () => { if (stopPl) stopPl(); };
+}
+
 /* ---------- router ---------- */
 function route() {
   if (typeof cleanup === 'function') { cleanup(); cleanup = null; }
   const h = (location.hash || '#inicio').slice(1);
-  let tab = h.startsWith('alg-') ? 'algoritmos' : h;
+  let tab = (h.startsWith('alg-') || h.startsWith('ej-')) ? 'algoritmos' : h;
   if (!['inicio', 'glosario', 'algoritmos', 'quiz', 'relacionar'].includes(tab)) tab = 'inicio';
   $$('nav.tabs a').forEach(a => { if (a.dataset.tab === tab) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   if (h.startsWith('alg-')) return viewAlg(h.slice(4));
+  if (h.startsWith('ej-')) { const m = h.match(/^ej-([a-z]+)-(\d+)$/); if (m) { cleanup = viewEx(m[1], +m[2]); return; } }
   ({ inicio: viewInicio, glosario: viewGlosario, algoritmos: viewAlgoritmos, quiz: viewQuiz, relacionar: () => { cleanup = viewRelacionar(); } })[tab]();
-  if (!h.startsWith('alg-')) window.scrollTo(0, 0);
+  window.scrollTo(0, 0);
 }
 window.addEventListener('hashchange', route);
 route();
